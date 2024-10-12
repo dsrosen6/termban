@@ -3,11 +3,9 @@ package main
 import (
 	"database/sql"
 	"fmt"
-)
 
-type db struct {
-	*sql.DB
-}
+	tea "github.com/charmbracelet/bubbletea"
+)
 
 func openDB() (*sql.DB, error) {
 	db, err := sql.Open("sqlite3", "./tasks.db") // TODO: Permanent location
@@ -32,8 +30,8 @@ func openDB() (*sql.DB, error) {
 	return db, nil
 }
 
-func (d *db) createTask(task task) error {
-	stmt, err := d.Prepare("INSERT INTO tasks(title, description, status) VALUES(?, ?, ?)")
+func (m *model) createTask(task task) error {
+	stmt, err := m.db.Prepare("INSERT INTO tasks(title, description, status) VALUES(?, ?, ?)")
 	if err != nil {
 		return fmt.Errorf("could not prepare statement: %w", err)
 	}
@@ -46,10 +44,10 @@ func (d *db) createTask(task task) error {
 	return nil
 }
 
-func (d *db) getTasks() ([]task, error) {
-	rows, err := d.Query("SELECT * FROM tasks")
+func (m *model) getTasks() tea.Msg {
+	rows, err := m.db.Query("SELECT * FROM tasks")
 	if err != nil {
-		return nil, fmt.Errorf("could not query db: %w", err)
+		return errMsg{err}
 	}
 	defer rows.Close()
 
@@ -58,16 +56,17 @@ func (d *db) getTasks() ([]task, error) {
 		var task task
 		err = rows.Scan(&task.id, &task.title, &task.description, &task.status)
 		if err != nil {
-			return nil, fmt.Errorf("could not scan row: %w", err)
+			return errMsg{err}
 		}
 		tasks = append(tasks, task)
 	}
 
-	return tasks, nil
+	m.tasks = tasks
+	return getTasksMsg(true)
 }
 
-func (d *db) updateTask(task task) error {
-	stmt, err := d.Prepare("UPDATE tasks SET title=?, description=?, status=? WHERE id=?")
+func (m *model) updateTask(task task) error {
+	stmt, err := m.db.Prepare("UPDATE tasks SET title=?, description=?, status=? WHERE id=?")
 	if err != nil {
 		return fmt.Errorf("could not prepare statement: %w", err)
 	}
@@ -80,8 +79,8 @@ func (d *db) updateTask(task task) error {
 	return nil
 }
 
-func (d *db) deleteTask(id int) error {
-	stmt, err := d.Prepare("DELETE FROM tasks WHERE id=?")
+func (m *model) deleteTask(id int) error {
+	stmt, err := m.db.Prepare("DELETE FROM tasks WHERE id=?")
 	if err != nil {
 		return fmt.Errorf("could not prepare statement: %w", err)
 	}
