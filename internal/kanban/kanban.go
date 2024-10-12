@@ -12,17 +12,17 @@ import (
 )
 
 type model struct {
-	db      *sql.DB
-	loaded  bool
-	tasks   []task
-	lists   []list.Model
-	focused status
+	db          *sql.DB
+	fullyLoaded bool
+	listLoaded  bool
+	tasksLoaded bool
+	tasks       []Task
+	lists       []list.Model
+	focused     Status
 }
 
 type (
-	getTasksMsg  bool
-	listsInitMsg bool
-	errMsg       struct{ err error }
+	errMsg struct{ err error }
 )
 
 func (e errMsg) Error() string { return e.err.Error() }
@@ -30,18 +30,18 @@ func (e errMsg) Error() string { return e.err.Error() }
 func NewModel() *model {
 	var m model
 	var err error
-	m.db, err = openDB()
+	m.db, err = OpenDB()
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)
 	}
 
-	m.focused = todo
+	m.focused = ToDo
 	return &m
 }
 
 func (m *model) Init() tea.Cmd {
-	return m.getTasks
+	return m.GetTasks
 }
 
 func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -51,10 +51,16 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "esc":
 			return m, tea.Quit
 		}
-	case getTasksMsg:
-		return m, m.initList
-	case listsInitMsg:
-		m.loaded = true
+	case tea.WindowSizeMsg:
+		if !m.listLoaded {
+			h, v := regStyle.GetFrameSize()
+			m.initLists(msg.Width-h, msg.Height-v)
+			m.listLoaded = true
+		}
+	}
+
+	if m.listLoaded && m.tasksLoaded {
+		m.setListTasks()
 		return m, nil
 	}
 
@@ -62,14 +68,14 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (m *model) View() string {
-	if !m.loaded {
+	if !m.listLoaded {
 		return "Loading..."
 	}
 
 	return lipgloss.JoinHorizontal(
 		lipgloss.Left,
-		m.lists[todo].View(),
-		m.lists[doing].View(),
-		m.lists[done].View(),
+		regStyle.Render(m.lists[ToDo].View()),
+		regStyle.Render(m.lists[Doing].View()),
+		regStyle.Render(m.lists[Done].View()),
 	)
 }

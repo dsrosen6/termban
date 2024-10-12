@@ -7,7 +7,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 )
 
-func openDB() (*sql.DB, error) {
+func OpenDB() (*sql.DB, error) {
 	db, err := sql.Open("sqlite3", "./tasks.db") // TODO: Permanent location
 	if err != nil {
 		return nil, fmt.Errorf("error opening db: %w", err)
@@ -30,13 +30,13 @@ func openDB() (*sql.DB, error) {
 	return db, nil
 }
 
-func (m *model) createTask(task task) error {
+func (m *model) CreateTask(task Task) error {
 	stmt, err := m.db.Prepare("INSERT INTO tasks(title, description, status) VALUES(?, ?, ?)")
 	if err != nil {
 		return fmt.Errorf("could not prepare statement: %w", err)
 	}
 
-	_, err = stmt.Exec(task.title, task.description, task.status)
+	_, err = stmt.Exec(task.Title, task.Description, task.Status)
 	if err != nil {
 		return fmt.Errorf("could not exec statement: %w", err)
 	}
@@ -44,17 +44,17 @@ func (m *model) createTask(task task) error {
 	return nil
 }
 
-func (m *model) getTasks() tea.Msg {
+func (m *model) GetTasks() tea.Msg {
 	rows, err := m.db.Query("SELECT * FROM tasks")
 	if err != nil {
 		return errMsg{err}
 	}
 	defer rows.Close()
 
-	tasks := []task{}
+	tasks := []Task{}
 	for rows.Next() {
-		var task task
-		err = rows.Scan(&task.id, &task.title, &task.description, &task.status)
+		var task Task
+		err = rows.Scan(&task.ID, &task.Title, &task.Description, &task.Status)
 		if err != nil {
 			return errMsg{err}
 		}
@@ -62,16 +62,18 @@ func (m *model) getTasks() tea.Msg {
 	}
 
 	m.tasks = tasks
-	return getTasksMsg(true)
+	m.tasksLoaded = true
+
+	return nil
 }
 
-func (m *model) updateTask(task task) error {
+func (m *model) UpdateTask(task Task) error {
 	stmt, err := m.db.Prepare("UPDATE tasks SET title=?, description=?, status=? WHERE id=?")
 	if err != nil {
 		return fmt.Errorf("could not prepare statement: %w", err)
 	}
 
-	_, err = stmt.Exec(task.title, task.description, task.status, task.id)
+	_, err = stmt.Exec(task.Title, task.Description, task.Status, task.ID)
 	if err != nil {
 		return fmt.Errorf("could not exec statement: %w", err)
 	}
@@ -79,7 +81,7 @@ func (m *model) updateTask(task task) error {
 	return nil
 }
 
-func (m *model) deleteTask(id int) error {
+func (m *model) DeleteTask(id int) error {
 	stmt, err := m.db.Prepare("DELETE FROM tasks WHERE id=?")
 	if err != nil {
 		return fmt.Errorf("could not prepare statement: %w", err)
