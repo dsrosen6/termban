@@ -1,4 +1,4 @@
-package main
+package kanban
 
 import (
 	"database/sql"
@@ -18,7 +18,7 @@ func openDB() (*sql.DB, error) {
 		id INTEGER PRIMARY KEY AUTOINCREMENT,
 		title TEXT,
 		description TEXT,
-		status TEXT
+		status INTEGER
 	);
 	`
 	_, err = db.Exec(sqlStmt)
