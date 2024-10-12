@@ -9,7 +9,7 @@ import (
 )
 
 func main() {
-	p := tea.NewProgram(kanban.NewModel())
+	p := tea.NewProgram(kanban.NewModel(), tea.WithAltScreen())
 	if _, err := p.Run(); err != nil {
 		fmt.Printf("Alas, there's been an error: %v", err)
 		os.Exit(1)

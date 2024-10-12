@@ -5,24 +5,43 @@ import (
 )
 
 const (
-	ToDo Status = iota
+	ToDo status = iota
 	Doing
 	Done
 )
 
 type Task struct {
-	ID          int
-	Title       string
-	Description string
-	Status
+	id    int
+	title string
+	desc  string
+	status
 }
 
-type Status int
+type status int
 
-func (t Task) FilterValue() string { return t.Title }
+func (t Task) FilterValue() string { return t.title }
+func (t Task) Title() string       { return t.title }
+func (t Task) Description() string { return t.desc }
+
+func (m *model) NextColumn() {
+	if m.focused == Done {
+		m.focused = ToDo
+	} else {
+		m.focused++
+	}
+}
+
+func (m *model) PrevColumn() {
+	if m.focused == ToDo {
+		m.focused = Done
+	} else {
+		m.focused--
+	}
+}
 
 func (m *model) initLists(width, height int) {
 	defaultList := list.New([]list.Item{}, list.NewDefaultDelegate(), width, height)
+	defaultList.SetShowHelp(false)
 	m.lists = []list.Model{defaultList, defaultList, defaultList}
 
 	m.lists[ToDo].Title = "To Do"
@@ -36,7 +55,7 @@ func (m *model) setListTasks() {
 	doneItems := []list.Item{}
 
 	for _, t := range m.tasks {
-		switch t.Status {
+		switch t.status {
 		case ToDo:
 			todoItems = append(todoItems, t)
 		case Doing:

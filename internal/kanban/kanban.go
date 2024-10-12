@@ -18,7 +18,7 @@ type model struct {
 	tasksLoaded bool
 	tasks       []Task
 	lists       []list.Model
-	focused     Status
+	focused     status
 }
 
 type (
@@ -50,32 +50,63 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		switch msg.String() {
 		case "esc":
 			return m, tea.Quit
+		case "left":
+			m.PrevColumn()
+			return m, nil
+		case "right":
+			m.NextColumn()
+			return m, nil
 		}
+
 	case tea.WindowSizeMsg:
 		if !m.listLoaded {
-			h, v := regStyle.GetFrameSize()
-			m.initLists(msg.Width-h, msg.Height-v)
+			_, v := regStyle.GetFrameSize()
+			m.initLists(msg.Width, msg.Height-v)
 			m.listLoaded = true
 		}
 	}
 
-	if m.listLoaded && m.tasksLoaded {
-		m.setListTasks()
-		return m, nil
+	if !m.fullyLoaded {
+		if m.listLoaded && m.tasksLoaded {
+			m.setListTasks()
+			m.fullyLoaded = true
+			return m, nil
+		}
 	}
 
-	return m, nil
+	var cmd tea.Cmd
+	m.lists[m.focused], cmd = m.lists[m.focused].Update(msg)
+	return m, cmd
 }
 
 func (m *model) View() string {
-	if !m.listLoaded {
+	if !m.fullyLoaded {
 		return "Loading..."
 	}
 
-	return lipgloss.JoinHorizontal(
-		lipgloss.Left,
-		regStyle.Render(m.lists[ToDo].View()),
-		regStyle.Render(m.lists[Doing].View()),
-		regStyle.Render(m.lists[Done].View()),
-	)
+	switch m.focused {
+	case ToDo:
+		return lipgloss.JoinHorizontal(
+			lipgloss.Left,
+			focusStyle.Render(m.lists[ToDo].View()),
+			regStyle.Render(m.lists[Doing].View()),
+			regStyle.Render(m.lists[Done].View()),
+		)
+	case Doing:
+		return lipgloss.JoinHorizontal(
+			lipgloss.Left,
+			regStyle.Render(m.lists[ToDo].View()),
+			focusStyle.Render(m.lists[Doing].View()),
+			regStyle.Render(m.lists[Done].View()),
+		)
+	case Done:
+		return lipgloss.JoinHorizontal(
+			lipgloss.Left,
+			regStyle.Render(m.lists[ToDo].View()),
+			regStyle.Render(m.lists[Doing].View()),
+			focusStyle.Render(m.lists[Done].View()),
+		)
+	}
+
+	return ""
 }
