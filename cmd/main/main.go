@@ -3,13 +3,13 @@ package main
 import (
 	"fmt"
 	"os"
-	"term-kanban/internal/kanban"
 
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/dsrosen6/termban/internal/termban"
 )
 
 func main() {
-	p := tea.NewProgram(kanban.NewModel(), tea.WithAltScreen())
+	p := tea.NewProgram(termban.NewModel(), tea.WithAltScreen())
 	if _, err := p.Run(); err != nil {
 		fmt.Printf("Alas, there's been an error: %v", err)
 		os.Exit(1)
@@ -18,21 +18,21 @@ func main() {
 
 // uncomment below to make a test db
 // func main() {
-// 	db, err := kanban.OpenDB()
+// 	db, err := termban.OpenDB()
 // 	if err != nil {
 // 		fmt.Println(err)
 // 		return
 // 	}
 // 	defer db.Close()
 
-// 	tasks := []kanban.Task{
-// 		{Title: "Write project proposal", Status: kanban.ToDo, Description: "Things"},
-// 		{Title: "Set up development environment", Status: kanban.Done, Description: "Stuff"},
-// 		{Title: "Design database schema", Status: kanban.Doing, Description: "Stuff"},
-// 		{Title: "Implement authentication", Status: kanban.ToDo, Description: "Things"},
-// 		{Title: "Create user interface mockups", Status: kanban.Done, Description: "Stuff"},
-// 		{Title: "Write unit tests", Status: kanban.Doing, Description: "Things"},
-// 		{Title: "Deploy to staging server", Status: kanban.ToDo, Description: "Things"},
+// 	tasks := []termban.Task{
+// 		{TaskTitle: "Write project proposal", TaskStatus: termban.ToDo, TaskDesc: "Things"},
+// 		{TaskTitle: "Set up development environment", TaskStatus: termban.Done, TaskDesc: "Stuff"},
+// 		{TaskTitle: "Design database schema", TaskStatus: termban.Doing, TaskDesc: "Stuff"},
+// 		{TaskTitle: "Implement authentication", TaskStatus: termban.ToDo, TaskDesc: "Things"},
+// 		{TaskTitle: "Create user interface mockups", TaskStatus: termban.Done, TaskDesc: "Stuff"},
+// 		{TaskTitle: "Write unit tests", TaskStatus: termban.Doing, TaskDesc: "Things"},
+// 		{TaskTitle: "Deploy to staging server", TaskStatus: termban.ToDo, TaskDesc: "Things"},
 // 	}
 
 // 	for _, t := range tasks {
@@ -52,25 +52,25 @@ func main() {
 // 	defer rows.Close()
 
 // 	for rows.Next() {
-// 		var t kanban.Task
-// 		err := rows.Scan(&t.ID, &t.Title, &t.Description, &t.Status)
+// 		var t termban.Task
+// 		err := rows.Scan(&t.TaskID, &t.TaskTitle, &t.TaskDesc, &t.TaskStatus)
 // 		if err != nil {
 // 			fmt.Println(err)
 // 			return
 // 		}
 
-// 		fmt.Printf("Task: %s Status: %d\n", t.Title, t.Status)
+// 		fmt.Printf("Task: %s Status: %d\n", t.TaskTitle, t.TaskStatus)
 // 	}
 
 // }
 
-// func createTask(task kanban.Task, db *sql.DB) error {
+// func createTask(task termban.Task, db *sql.DB) error {
 // 	stmt, err := db.Prepare("INSERT INTO tasks(title, description, status) VALUES(?, ?, ?)")
 // 	if err != nil {
 // 		return fmt.Errorf("could not prepare statement: %w", err)
 // 	}
 
-// 	_, err = stmt.Exec(task.Title, task.Description, task.Status)
+// 	_, err = stmt.Exec(task.Title, task.Description, task.TaskStatus)
 // 	if err != nil {
 // 		return fmt.Errorf("could not exec statement: %w", err)
 // 	}

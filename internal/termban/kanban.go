@@ -1,4 +1,4 @@
-package kanban
+package termban
 
 import (
 	"database/sql"
@@ -18,7 +18,7 @@ type model struct {
 	tasksLoaded bool
 	tasks       []Task
 	lists       []list.Model
-	focused     status
+	focused     TaskStatus
 }
 
 type (
@@ -60,8 +60,8 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case tea.WindowSizeMsg:
 		if !m.listLoaded {
-			_, v := regStyle.GetFrameSize()
-			m.initLists(msg.Width, msg.Height-v)
+			h, v := regStyle.GetFrameSize()
+			m.initLists(msg.Width-h, msg.Height-v)
 			m.listLoaded = true
 		}
 	}
@@ -109,4 +109,5 @@ func (m *model) View() string {
 	}
 
 	return ""
+
 }

@@ -1,4 +1,4 @@
-module term-kanban
+module github.com/dsrosen6/termban
 
 go 1.23.1
 

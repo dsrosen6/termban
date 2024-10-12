@@ -1,27 +1,30 @@
-package kanban
+package termban
 
 import (
 	"github.com/charmbracelet/bubbles/list"
 )
 
 const (
-	ToDo status = iota
+	ToDo TaskStatus = iota
 	Doing
 	Done
 )
 
+// These are all prepended with "Task" so as to not conflict with the other methods right below it.
+// Sure, I didn't need to do this with ID, Description, or Status, but I have clinical OCD.
+// I would never, ever stop thinking about it.
 type Task struct {
-	id    int
-	title string
-	desc  string
-	status
+	TaskID    int
+	TaskTitle string
+	TaskDesc  string
+	TaskStatus
 }
 
-type status int
+type TaskStatus int
 
-func (t Task) FilterValue() string { return t.title }
-func (t Task) Title() string       { return t.title }
-func (t Task) Description() string { return t.desc }
+func (t Task) FilterValue() string { return t.TaskTitle }
+func (t Task) Title() string       { return t.TaskTitle }
+func (t Task) Description() string { return t.TaskDesc }
 
 func (m *model) NextColumn() {
 	if m.focused == Done {
@@ -55,7 +58,7 @@ func (m *model) setListTasks() {
 	doneItems := []list.Item{}
 
 	for _, t := range m.tasks {
-		switch t.status {
+		switch t.TaskStatus {
 		case ToDo:
 			todoItems = append(todoItems, t)
 		case Doing:

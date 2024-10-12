@@ -1,4 +1,4 @@
-package kanban
+package termban
 
 import (
 	"database/sql"
@@ -36,7 +36,7 @@ func (m *model) CreateTask(task Task) error {
 		return fmt.Errorf("could not prepare statement: %w", err)
 	}
 
-	_, err = stmt.Exec(task.title, task.desc, task.status)
+	_, err = stmt.Exec(task.TaskTitle, task.TaskDesc, task.TaskStatus)
 	if err != nil {
 		return fmt.Errorf("could not exec statement: %w", err)
 	}
@@ -54,7 +54,7 @@ func (m *model) GetTasks() tea.Msg {
 	tasks := []Task{}
 	for rows.Next() {
 		var task Task
-		err = rows.Scan(&task.id, &task.title, &task.desc, &task.status)
+		err = rows.Scan(&task.TaskID, &task.TaskTitle, &task.TaskDesc, &task.TaskStatus)
 		if err != nil {
 			return errMsg{err}
 		}
@@ -73,7 +73,7 @@ func (m *model) UpdateTask(task Task) error {
 		return fmt.Errorf("could not prepare statement: %w", err)
 	}
 
-	_, err = stmt.Exec(task.title, task.desc, task.status, task.id)
+	_, err = stmt.Exec(task.TaskTitle, task.TaskDesc, task.TaskStatus, task.TaskID)
 	if err != nil {
 		return fmt.Errorf("could not exec statement: %w", err)
 	}
