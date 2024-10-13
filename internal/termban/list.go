@@ -6,6 +6,8 @@ import (
 	"github.com/charmbracelet/lipgloss"
 )
 
+type TaskStatus int
+
 const (
 	ToDo TaskStatus = iota
 	Doing
@@ -21,8 +23,6 @@ type Task struct {
 	TaskDesc  string
 	TaskStatus
 }
-
-type TaskStatus int
 
 func (t Task) FilterValue() string { return t.TaskTitle }
 func (t Task) Title() string       { return t.TaskTitle }
@@ -50,62 +50,42 @@ func (m *model) initLists() tea.Msg {
 	defaultList.SetShowHelp(false)
 	m.lists = []list.Model{defaultList, defaultList, defaultList}
 
-	m.lists[ToDo].Title = "To Do"
-	m.lists[Doing].Title = "Doing"
-	m.lists[Done].Title = "Done"
+	titles := []string{"To Do", "Doing", "Done"}
+	for i, title := range titles {
+		m.lists[i].Title = title
+	}
 
 	log.Debug("lists successfully initialized")
 	return tea.Msg("ListInit")
 }
 
 func (m *model) setListTasks() tea.Msg {
-	todoItems := []list.Item{}
-	doingItems := []list.Item{}
-	doneItems := []list.Item{}
-
-	for _, t := range m.tasks {
-		switch t.TaskStatus {
-		case ToDo:
-			todoItems = append(todoItems, t)
-		case Doing:
-			doingItems = append(doingItems, t)
-		case Done:
-			doneItems = append(doneItems, t)
-		}
+	items := map[TaskStatus][]list.Item{
+		ToDo:  {},
+		Doing: {},
+		Done:  {},
 	}
 
-	m.lists[ToDo].SetItems(todoItems)
-	m.lists[Doing].SetItems(doingItems)
-	m.lists[Done].SetItems(doneItems)
+	for _, t := range m.tasks {
+		items[t.TaskStatus] = append(items[t.TaskStatus], t)
+	}
+
+	for status, itemList := range items {
+		m.lists[status].SetItems(itemList)
+	}
 
 	return tea.Msg("ListTasksSet")
 }
 
 func (m *model) getListStyles() string {
-	switch m.focused {
-	case ToDo:
-		return m.InvisBorder().Render(lipgloss.JoinHorizontal(
-			lipgloss.Left,
-			m.FocusBorder().Render(m.lists[ToDo].View()),
-			m.UnfocusedBorder().Render(m.lists[Doing].View()),
-			m.UnfocusedBorder().Render(m.lists[Done].View())),
-		)
-
-	case Doing:
-		return m.InvisBorder().Render(lipgloss.JoinHorizontal(
-			lipgloss.Left,
-			m.UnfocusedBorder().Render(m.lists[ToDo].View()),
-			m.FocusBorder().Render(m.lists[Doing].View()),
-			m.UnfocusedBorder().Render(m.lists[Done].View())),
-		)
-	case Done:
-		return m.InvisBorder().Render(lipgloss.JoinHorizontal(
-			lipgloss.Left,
-			m.UnfocusedBorder().Render(m.lists[ToDo].View()),
-			m.UnfocusedBorder().Render(m.lists[Doing].View()),
-			m.FocusBorder().Render(m.lists[Done].View())),
-		)
+	var views []string
+	for i, list := range m.lists {
+		if TaskStatus(i) == m.focused {
+			views = append(views, m.FocusBorder().Render(list.View()))
+		} else {
+			views = append(views, m.UnfocusedBorder().Render(list.View()))
+		}
 	}
 
-	return ""
+	return m.InvisBorder().Render(lipgloss.JoinHorizontal(lipgloss.Left, views...))
 }
