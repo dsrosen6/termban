@@ -11,11 +11,11 @@ var (
 )
 
 func (m *model) colWidth() int {
-	return m.availWidth/3 - 2
+	return m.availWidth*1/3 - 2
 }
 
 func (m *model) colHeight() int {
-	return m.availHeight * 3 / 4
+	return m.availHeight * 9 / 10
 }
 
 func (m *model) InvisBorder() lipgloss.Style {

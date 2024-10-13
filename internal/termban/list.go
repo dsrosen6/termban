@@ -2,6 +2,7 @@ package termban
 
 import (
 	"github.com/charmbracelet/bubbles/list"
+	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 )
 
@@ -43,17 +44,21 @@ func (m *model) PrevColumn() {
 	}
 }
 
-func (m *model) initLists(width, height int) {
-	defaultList := list.New([]list.Item{}, list.NewDefaultDelegate(), width, height)
+func (m *model) initLists() tea.Msg {
+	log.Debug("initializing lists")
+	defaultList := list.New([]list.Item{}, list.NewDefaultDelegate(), 0, 0)
 	defaultList.SetShowHelp(false)
 	m.lists = []list.Model{defaultList, defaultList, defaultList}
 
 	m.lists[ToDo].Title = "To Do"
 	m.lists[Doing].Title = "Doing"
 	m.lists[Done].Title = "Done"
+
+	log.Debug("lists successfully initialized")
+	return tea.Msg("ListInit")
 }
 
-func (m *model) setListTasks() {
+func (m *model) setListTasks() tea.Msg {
 	todoItems := []list.Item{}
 	doingItems := []list.Item{}
 	doneItems := []list.Item{}
@@ -72,6 +77,8 @@ func (m *model) setListTasks() {
 	m.lists[ToDo].SetItems(todoItems)
 	m.lists[Doing].SetItems(doingItems)
 	m.lists[Done].SetItems(doneItems)
+
+	return tea.Msg("ListTasksSet")
 }
 
 func (m *model) getListStyles() string {

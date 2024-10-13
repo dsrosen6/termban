@@ -45,6 +45,7 @@ func (m *model) CreateTask(task Task) error {
 }
 
 func (m *model) GetTasks() tea.Msg {
+	log.Debug("getting tasks")
 	rows, err := m.db.Query("SELECT * FROM tasks")
 	if err != nil {
 		return errMsg{err}
@@ -63,7 +64,7 @@ func (m *model) GetTasks() tea.Msg {
 
 	m.tasks = tasks
 	m.tasksLoaded = true
-
+	log.Debug("tasks successfully loaded")
 	return tea.Msg("TasksLoaded")
 }
 
