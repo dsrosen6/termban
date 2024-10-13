@@ -64,7 +64,7 @@ func (m *model) GetTasks() tea.Msg {
 	m.tasks = tasks
 	m.tasksLoaded = true
 
-	return nil
+	return tea.Msg("TasksLoaded")
 }
 
 func (m *model) UpdateTask(task Task) error {

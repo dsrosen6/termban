@@ -7,7 +7,6 @@ import (
 
 	"github.com/charmbracelet/bubbles/list"
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/lipgloss"
 	_ "github.com/mattn/go-sqlite3"
 )
 
@@ -16,9 +15,14 @@ type model struct {
 	fullyLoaded bool
 	listLoaded  bool
 	tasksLoaded bool
-	tasks       []Task
-	lists       []list.Model
-	focused     TaskStatus
+	size
+	tasks   []Task
+	lists   []list.Model
+	focused TaskStatus
+}
+
+type size struct {
+	availWidth, availHeight int
 }
 
 type (
@@ -59,11 +63,14 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 
 	case tea.WindowSizeMsg:
-		if !m.listLoaded {
-			h, v := regStyle.GetFrameSize()
-			m.initLists(msg.Width-h, msg.Height-v)
-			m.listLoaded = true
-		}
+		// Set main border frame size
+		h, v := dummyBorder.GetFrameSize()
+		m.availWidth = msg.Width - h
+		m.availHeight = msg.Height - v
+
+		m.initLists(m.colWidth(), m.colHeight())
+		m.setListTasks()
+		m.listLoaded = true
 	}
 
 	if !m.fullyLoaded {
@@ -72,11 +79,14 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.fullyLoaded = true
 			return m, nil
 		}
+
+	} else {
+		var cmd tea.Cmd
+		m.lists[m.focused], cmd = m.lists[m.focused].Update(msg)
+		return m, cmd
 	}
 
-	var cmd tea.Cmd
-	m.lists[m.focused], cmd = m.lists[m.focused].Update(msg)
-	return m, cmd
+	return m, nil
 }
 
 func (m *model) View() string {
@@ -84,30 +94,5 @@ func (m *model) View() string {
 		return "Loading..."
 	}
 
-	switch m.focused {
-	case ToDo:
-		return lipgloss.JoinHorizontal(
-			lipgloss.Left,
-			focusStyle.Render(m.lists[ToDo].View()),
-			regStyle.Render(m.lists[Doing].View()),
-			regStyle.Render(m.lists[Done].View()),
-		)
-	case Doing:
-		return lipgloss.JoinHorizontal(
-			lipgloss.Left,
-			regStyle.Render(m.lists[ToDo].View()),
-			focusStyle.Render(m.lists[Doing].View()),
-			regStyle.Render(m.lists[Done].View()),
-		)
-	case Done:
-		return lipgloss.JoinHorizontal(
-			lipgloss.Left,
-			regStyle.Render(m.lists[ToDo].View()),
-			regStyle.Render(m.lists[Doing].View()),
-			focusStyle.Render(m.lists[Done].View()),
-		)
-	}
-
-	return ""
-
+	return m.getListStyles()
 }

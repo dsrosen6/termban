@@ -2,6 +2,7 @@ package termban
 
 import (
 	"github.com/charmbracelet/bubbles/list"
+	"github.com/charmbracelet/lipgloss"
 )
 
 const (
@@ -71,4 +72,33 @@ func (m *model) setListTasks() {
 	m.lists[ToDo].SetItems(todoItems)
 	m.lists[Doing].SetItems(doingItems)
 	m.lists[Done].SetItems(doneItems)
+}
+
+func (m *model) getListStyles() string {
+	switch m.focused {
+	case ToDo:
+		return m.InvisBorder().Render(lipgloss.JoinHorizontal(
+			lipgloss.Left,
+			m.FocusBorder().Render(m.lists[ToDo].View()),
+			m.UnfocusedBorder().Render(m.lists[Doing].View()),
+			m.UnfocusedBorder().Render(m.lists[Done].View())),
+		)
+
+	case Doing:
+		return m.InvisBorder().Render(lipgloss.JoinHorizontal(
+			lipgloss.Left,
+			m.UnfocusedBorder().Render(m.lists[ToDo].View()),
+			m.FocusBorder().Render(m.lists[Doing].View()),
+			m.UnfocusedBorder().Render(m.lists[Done].View())),
+		)
+	case Done:
+		return m.InvisBorder().Render(lipgloss.JoinHorizontal(
+			lipgloss.Left,
+			m.UnfocusedBorder().Render(m.lists[ToDo].View()),
+			m.UnfocusedBorder().Render(m.lists[Doing].View()),
+			m.FocusBorder().Render(m.lists[Done].View())),
+		)
+	}
+
+	return ""
 }
