@@ -63,6 +63,10 @@ func (m *model) GetTasks() tea.Msg {
 	}
 
 	m.tasks = tasks
+	if m.fullyLoaded {
+		return tea.Msg("TasksRefreshed")
+	}
+
 	m.tasksLoaded = true
 	log.Debug("tasks successfully loaded")
 	return tea.Msg("TasksLoaded")

@@ -89,6 +89,9 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			log.Debug("user moved right")
 			m.NextColumn()
 			return m, nil
+		case "d":
+			log.Debug("user deleted task")
+			return m, m.deleteTask
 		}
 
 	case tea.WindowSizeMsg:
@@ -112,6 +115,13 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.tasksLoaded = true
 		case "ListInit":
 			m.listInit = true
+		// Sent by Create, Update, and Delete to initiate a refresh
+		case "TasksRefreshNeeded":
+			return m, m.GetTasks
+		// Sent by GetTasks after tasks are loaded
+		case "TasksRefreshed":
+			// If tasks are loaded, update the lists
+			return m, m.setListTasks
 		}
 	}
 

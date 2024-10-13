@@ -25,8 +25,10 @@ type Task struct {
 }
 
 func (t Task) FilterValue() string { return t.TaskTitle }
+func (t Task) ID() int             { return t.TaskID }
 func (t Task) Title() string       { return t.TaskTitle }
 func (t Task) Description() string { return t.TaskDesc }
+func (t Task) Status() TaskStatus  { return t.TaskStatus }
 
 func (m *model) NextColumn() {
 	if m.focused == Done {
@@ -88,4 +90,21 @@ func (m *model) getListStyles() string {
 	}
 
 	return m.InvisBorder().Render(lipgloss.JoinHorizontal(lipgloss.Left, views...))
+}
+
+func (m *model) deleteTask() tea.Msg {
+	if err := m.DeleteTask(m.selectedTask().TaskID); err != nil {
+		return errMsg{err}
+	}
+
+	return tea.Msg("TasksRefreshNeeded")
+}
+
+func (m model) selectedTask() Task {
+	st := m.lists[m.focused].SelectedItem()
+	if st == nil {
+		return Task{}
+	}
+
+	return st.(Task)
 }
