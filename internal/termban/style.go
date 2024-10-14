@@ -7,7 +7,7 @@ var (
 	grey  = lipgloss.Color("243")
 
 	// used to get frame size
-	dummyBorder = lipgloss.NewStyle().Border(lipgloss.HiddenBorder())
+	dummyBorder = lipgloss.NewStyle().Border(lipgloss.NormalBorder())
 )
 
 func (m *model) colWidth() int {
@@ -15,17 +15,25 @@ func (m *model) colWidth() int {
 }
 
 func (m *model) colHeight() int {
-	return m.availHeight * 9 / 10
+	return m.availHeight * 8 / 10
 }
 
-func (m *model) InvisBorder() lipgloss.Style {
-	return lipgloss.NewStyle().Border(lipgloss.HiddenBorder()).Width(m.availWidth).Height(m.availHeight).MaxHeight(m.availHeight).Margin(0, 0)
+func (m *model) inputWidth() int {
+	return lipgloss.Width(m.listsView()) - 2
 }
 
-func (m *model) FocusBorder() lipgloss.Style {
-	return lipgloss.NewStyle().Border(lipgloss.RoundedBorder()).BorderForeground(green).Width(m.colWidth()).Height(m.colHeight()).Padding(0, 1)
+func (m *model) FocusInputBorder() lipgloss.Style {
+	return lipgloss.NewStyle().Border(lipgloss.NormalBorder()).BorderForeground(green).Width(m.inputWidth())
 }
 
-func (m *model) UnfocusedBorder() lipgloss.Style {
-	return lipgloss.NewStyle().Border(lipgloss.RoundedBorder()).BorderForeground(grey).Width(m.colWidth()).Height(m.colHeight()).Padding(0, 1)
+func (m *model) RegInputBorder() lipgloss.Style {
+	return lipgloss.NewStyle().Border(lipgloss.NormalBorder()).BorderForeground(grey).Width(m.inputWidth())
+}
+
+func (m *model) FocusColumnView() lipgloss.Style {
+	return lipgloss.NewStyle().Border(lipgloss.NormalBorder()).BorderForeground(green).Width(m.colWidth()).Height(m.colHeight()).Padding(1, 1)
+}
+
+func (m *model) RegColumnView() lipgloss.Style {
+	return lipgloss.NewStyle().Border(lipgloss.NormalBorder()).BorderForeground(grey).Width(m.colWidth()).Height(m.colHeight()).Padding(1, 1)
 }

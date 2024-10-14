@@ -79,17 +79,26 @@ func (m *model) setListTasks() tea.Msg {
 	return tea.Msg("ListTasksSet")
 }
 
-func (m *model) getListStyles() string {
+func (m *model) fullOutput() string {
+	return lipgloss.NewStyle().Align(lipgloss.Center).Render(
+		lipgloss.JoinVertical(lipgloss.Center, m.listsView(), m.inputView()))
+}
+
+func (m *model) inputView() string {
+	return m.RegInputBorder().Render(m.textinput.View())
+}
+
+func (m *model) listsView() string {
 	var views []string
 	for i, list := range m.lists {
 		if TaskStatus(i) == m.focused {
-			views = append(views, m.FocusBorder().Render(list.View()))
+			views = append(views, m.FocusColumnView().Render(list.View()))
 		} else {
-			views = append(views, m.UnfocusedBorder().Render(list.View()))
+			views = append(views, m.RegColumnView().Render(list.View()))
 		}
 	}
 
-	return m.InvisBorder().Render(lipgloss.JoinHorizontal(lipgloss.Left, views...))
+	return lipgloss.JoinHorizontal(lipgloss.Top, views...)
 }
 
 func (m *model) deleteTask() tea.Msg {

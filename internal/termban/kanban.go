@@ -7,6 +7,7 @@ import (
 	"os"
 
 	"github.com/charmbracelet/bubbles/list"
+	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/dsrosen6/termban/internal/logger"
 	_ "github.com/mattn/go-sqlite3"
@@ -27,9 +28,10 @@ type model struct {
 	sizeObtained bool
 	tooSmall     bool
 	size
-	tasks   []Task
-	lists   []list.Model
-	focused TaskStatus
+	tasks     []Task
+	lists     []list.Model
+	focused   TaskStatus
+	textinput textinput.Model
 }
 
 type size struct {
@@ -59,6 +61,9 @@ func NewModel() *model {
 		os.Exit(1)
 	}
 
+	log.Debug("initializing textinput")
+	m.textinput = textinput.New()
+
 	log.Debug("setting focused to ToDo")
 	m.focused = ToDo
 
@@ -71,6 +76,7 @@ func (m *model) Init() tea.Cmd {
 	return tea.Batch(
 		m.GetTasks,
 		m.initLists,
+		textinput.Blink,
 	)
 }
 
@@ -161,5 +167,5 @@ func (m *model) View() string {
 		return "Window too small. Please resize."
 	}
 
-	return m.getListStyles()
+	return m.fullOutput()
 }
