@@ -16,12 +16,12 @@ import (
 var log *slog.Logger
 
 type model struct {
-	db              *sql.DB
-	cmdAcknowledged bool
-	fullyLoaded     bool
-	tasksLoaded     bool
-	listInit        bool
-	sizeObtained    bool
+	db           *sql.DB
+	cmdActive    bool
+	fullyLoaded  bool
+	tasksLoaded  bool
+	listInit     bool
+	sizeObtained bool
 	mode
 	size
 	tasks     []Task
@@ -52,6 +52,7 @@ func init() {
 }
 
 func NewInputForm() *huh.Form {
+	log.Debug("setting fresh input form")
 	return huh.NewForm(
 		huh.NewGroup(
 			huh.NewInput().
@@ -102,13 +103,9 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				log.Debug("user quit")
 				return m, tea.Quit
 			case "left":
-				log.Debug("user moved left")
-				m.PrevColumn()
-				return m, nil
+				return m, m.PrevColumn
 			case "right":
-				log.Debug("user moved right")
-				m.NextColumn()
-				return m, nil
+				return m, m.NextColumn
 			case "d":
 				log.Debug("user deleted task")
 				return m, m.deleteTask
@@ -146,14 +143,19 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.listInit = true
 		// Sent by Create, Update, and Delete to initiate a refresh
 		case "TasksRefreshNeeded":
+			log.Debug("task refresh needed")
+			m.inputForm = NewInputForm()
 			return m, m.DBGetTasks
 		// Sent by GetTasks after tasks are loaded
 		case "TasksRefreshed":
 			// If tasks are loaded, update the lists
-			m.cmdAcknowledged = false
+			log.Debug("task refresh msg received")
+			log.Debug("setting cmdActive to false")
+			m.cmdActive = false
 			return m, m.setListTasks
 		case "ModeSet":
 			// TODO: this is a buffer to make sure border colors change. is it necessary???
+			log.Debug("mode set", "mode", m.mode)
 			return m, nil
 		}
 	}
@@ -181,8 +183,10 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	switch m.mode {
 	case listMode:
+		log.Debug("updating focused list", "listStatus", m.focused)
 		m.lists[m.focused], cmd = m.lists[m.focused].Update(msg)
 	case inputMode:
+		log.Debug("updating input form")
 		var form tea.Model
 		form, cmd = m.inputForm.Update(msg)
 		if f, ok := form.(*huh.Form); ok {
@@ -191,8 +195,9 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	}
 
 	if m.inputForm.State == huh.StateCompleted {
-		if !m.cmdAcknowledged {
-			m.cmdAcknowledged = true
+		if !m.cmdActive {
+			log.Debug("setting cmdActive to true")
+			m.cmdActive = true
 			return m, tea.Batch(m.createTask, m.setMode(listMode), m.setListTasks)
 		}
 	}

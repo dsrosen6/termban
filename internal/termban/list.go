@@ -29,20 +29,24 @@ func (t Task) Title() string       { return t.TaskTitle }
 func (t Task) Description() string { return t.TaskDesc }
 func (t Task) Status() TaskStatus  { return t.TaskStatus }
 
-func (m *model) NextColumn() {
+func (m *model) NextColumn() tea.Msg {
 	if m.focused == Done {
 		m.focused = ToDo
 	} else {
 		m.focused++
 	}
+
+	return tea.Msg("NextColumn")
 }
 
-func (m *model) PrevColumn() {
+func (m *model) PrevColumn() tea.Msg {
 	if m.focused == ToDo {
 		m.focused = Done
 	} else {
 		m.focused--
 	}
+
+	return tea.Msg("PrevColumn")
 }
 
 func (m *model) initLists() tea.Msg {
