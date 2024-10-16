@@ -185,19 +185,23 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case inputMode:
 		if m.inputForm != nil {
-			if m.inputForm.State == huh.StateCompleted {
+			log.Debug("huh form state", "state", m.inputForm.State)
+			switch m.inputForm.State {
+
+			case huh.StateNormal:
+				var form tea.Model
+				log.Debug("updating input form")
+				form, cmd = m.inputForm.Update(msg)
+				if f, ok := form.(*huh.Form); ok {
+					m.inputForm = f
+				}
+
+			case huh.StateCompleted:
 				if !m.cmdActive {
 					log.Debug("setting cmdActive to true")
 					m.cmdActive = true
-					return m, tea.Batch(m.createTask, m.setMode(listMode), m.setListTasks)
+					cmd = tea.Batch(m.createTask, m.setMode(listMode), m.setListTasks)
 				}
-			}
-
-			var form tea.Model
-			log.Debug("updating input form")
-			form, cmd = m.inputForm.Update(msg)
-			if f, ok := form.(*huh.Form); ok {
-				m.inputForm = f
 			}
 
 		} else {
@@ -205,6 +209,7 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 	}
 
+	log.Debug("sending cmd", "cmd", cmd)
 	return m, cmd
 
 }

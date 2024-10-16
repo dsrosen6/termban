@@ -94,7 +94,6 @@ func (m *model) createTask() tea.Msg {
 		return errMsg{err}
 	}
 
-	m.inputForm = NewInputForm()
 	return tea.Msg("TasksRefreshNeeded")
 }
 
