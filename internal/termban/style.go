@@ -7,7 +7,7 @@ var (
 	grey  = lipgloss.Color("243")
 
 	// used to get frame size
-	dummyBorder = lipgloss.NewStyle().Border(lipgloss.NormalBorder())
+	dummyBorder = lipgloss.NewStyle().Border(lipgloss.NormalBorder()).MarginTop(2)
 )
 
 func (m *model) colWidth() int {
@@ -15,25 +15,34 @@ func (m *model) colWidth() int {
 }
 
 func (m *model) colHeight() int {
-	return m.availHeight * 8 / 10
+	return m.availHeight * 5 / 6
 }
 
 func (m *model) inputWidth() int {
-	return lipgloss.Width(m.listsView()) - 2
+	h, _ := m.HiddenBorder().GetFrameSize()
+	return lipgloss.Width(m.listsView()) - h
 }
 
-func (m *model) FocusInputBorder() lipgloss.Style {
-	return lipgloss.NewStyle().Border(lipgloss.NormalBorder()).BorderForeground(green).Width(m.inputWidth())
+func (m *model) HiddenBorder() lipgloss.Style {
+	return lipgloss.NewStyle().Border(lipgloss.HiddenBorder()).Width(m.availWidth).Height(m.availHeight)
 }
 
-func (m *model) RegInputBorder() lipgloss.Style {
-	return lipgloss.NewStyle().Border(lipgloss.NormalBorder()).BorderForeground(grey).Width(m.inputWidth())
+func (m *model) InputFocusedStyle() lipgloss.Style {
+	return lipgloss.NewStyle().Border(lipgloss.RoundedBorder()).BorderForeground(green).Width(m.inputWidth())
+}
+
+func (m *model) InputInactiveStyle() lipgloss.Style {
+	return lipgloss.NewStyle().Border(lipgloss.HiddenBorder()).BorderForeground(grey).Width(m.inputWidth())
 }
 
 func (m *model) FocusColumnView() lipgloss.Style {
-	return lipgloss.NewStyle().Border(lipgloss.NormalBorder()).BorderForeground(green).Width(m.colWidth()).Height(m.colHeight()).Padding(1, 1)
+	return lipgloss.NewStyle().Border(lipgloss.RoundedBorder()).BorderForeground(green).Width(m.colWidth()).Height(m.colHeight()).Padding(1, 1)
+}
+
+func (m *model) InactiveFocusColumnView() lipgloss.Style {
+	return lipgloss.NewStyle().Border(lipgloss.RoundedBorder()).BorderForeground(grey).Width(m.colWidth()).Height(m.colHeight()).Padding(1, 1)
 }
 
 func (m *model) RegColumnView() lipgloss.Style {
-	return lipgloss.NewStyle().Border(lipgloss.NormalBorder()).BorderForeground(grey).Width(m.colWidth()).Height(m.colHeight()).Padding(1, 1)
+	return lipgloss.NewStyle().Border(lipgloss.HiddenBorder()).BorderForeground(green).Faint(true).Width(m.colWidth()).Height(m.colHeight()).Padding(1, 1)
 }

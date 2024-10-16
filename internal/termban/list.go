@@ -3,7 +3,6 @@ package termban
 import (
 	"github.com/charmbracelet/bubbles/list"
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/lipgloss"
 )
 
 type TaskStatus int
@@ -79,26 +78,18 @@ func (m *model) setListTasks() tea.Msg {
 	return tea.Msg("ListTasksSet")
 }
 
-func (m *model) fullOutput() string {
-	return lipgloss.NewStyle().Align(lipgloss.Center).Render(
-		lipgloss.JoinVertical(lipgloss.Center, m.listsView(), m.inputView()))
-}
-
-func (m *model) inputView() string {
-	return m.RegInputBorder().Render(m.textinput.View())
-}
-
-func (m *model) listsView() string {
-	var views []string
-	for i, list := range m.lists {
-		if TaskStatus(i) == m.focused {
-			views = append(views, m.FocusColumnView().Render(list.View()))
-		} else {
-			views = append(views, m.RegColumnView().Render(list.View()))
-		}
+func (m *model) createTask() tea.Msg {
+	task := Task{
+		TaskTitle: m.inputForm.GetString("TaskTitle"),
+		TaskDesc:  m.inputForm.GetString("TaskDesc"),
 	}
 
-	return lipgloss.JoinHorizontal(lipgloss.Top, views...)
+	if err := m.CreateTask(task); err != nil {
+		return errMsg{err}
+	}
+
+	m.inputForm = NewInputForm()
+	return tea.Msg("TasksRefreshNeeded")
 }
 
 func (m *model) deleteTask() tea.Msg {

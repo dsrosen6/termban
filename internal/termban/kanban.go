@@ -7,15 +7,10 @@ import (
 	"os"
 
 	"github.com/charmbracelet/bubbles/list"
-	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/huh"
 	"github.com/dsrosen6/termban/internal/logger"
 	_ "github.com/mattn/go-sqlite3"
-)
-
-const (
-	minWidth  = 110
-	minHeight = 34
 )
 
 var log *slog.Logger
@@ -26,13 +21,20 @@ type model struct {
 	tasksLoaded  bool
 	listInit     bool
 	sizeObtained bool
-	tooSmall     bool
+	mode
 	size
 	tasks     []Task
 	lists     []list.Model
 	focused   TaskStatus
-	textinput textinput.Model
+	inputForm *huh.Form
 }
+
+type mode int
+
+const (
+	listMode mode = iota
+	inputMode
+)
 
 type size struct {
 	availWidth, availHeight int
@@ -48,27 +50,36 @@ func init() {
 	log = logger.GetLogger()
 }
 
-func NewModel() *model {
-	log.Debug("creating new model")
-	var m model
-	var err error
+func NewInputForm() *huh.Form {
+	return huh.NewForm(
+		huh.NewGroup(
+			huh.NewInput().
+				Placeholder("Title").
+				Key("TaskTitle"),
+		),
+		huh.NewGroup(
+			huh.NewInput().
+				Placeholder("Description").
+				Key("TaskDesc"),
+		),
+	).WithShowHelp(false)
+}
 
-	log.Debug("opening db")
-	m.db, err = OpenDB()
+func NewModel() *model {
+	db, err := OpenDB()
 	if err != nil {
 		log.Error("OpenDB", "error", err)
 		fmt.Println(err)
 		os.Exit(1)
 	}
 
-	log.Debug("initializing textinput")
-	m.textinput = textinput.New()
-
-	log.Debug("setting focused to ToDo")
-	m.focused = ToDo
-
 	log.Info("model created")
-	return &m
+	return &model{
+		db:        db,
+		mode:      listMode,
+		focused:   ToDo,
+		inputForm: NewInputForm(),
+	}
 }
 
 func (m *model) Init() tea.Cmd {
@@ -76,28 +87,39 @@ func (m *model) Init() tea.Cmd {
 	return tea.Batch(
 		m.GetTasks,
 		m.initLists,
-		textinput.Blink,
+		m.inputForm.Init(),
 	)
 }
 
 func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
-		switch msg.String() {
-		case "esc":
-			log.Debug("user quit")
-			return m, tea.Quit
-		case "left":
-			log.Debug("user moved left")
-			m.PrevColumn()
-			return m, nil
-		case "right":
-			log.Debug("user moved right")
-			m.NextColumn()
-			return m, nil
-		case "d":
-			log.Debug("user deleted task")
-			return m, m.deleteTask
+		switch m.mode {
+		case listMode:
+			switch msg.String() {
+			case "esc":
+				log.Debug("user quit")
+				return m, tea.Quit
+			case "left":
+				log.Debug("user moved left")
+				m.PrevColumn()
+				return m, nil
+			case "right":
+				log.Debug("user moved right")
+				m.NextColumn()
+				return m, nil
+			case "d":
+				log.Debug("user deleted task")
+				return m, m.deleteTask
+			case "a":
+				return m, m.setMode(inputMode)
+			}
+
+		case inputMode:
+			switch msg.String() {
+			case "esc":
+				return m, m.setMode(listMode)
+			}
 		}
 
 	case tea.WindowSizeMsg:
@@ -108,12 +130,12 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.sizeObtained = true
 		log.Debug("size obtained", "width", msg.Width, "height", msg.Height, "availWidth", m.availWidth, "availHeight", m.availHeight)
 
-		if msg.Width < minWidth || msg.Height < minHeight {
-			log.Debug("window too small")
-			m.tooSmall = true
-		} else {
-			m.tooSmall = false
-		}
+		// if msg.Width < minWidth || msg.Height < minHeight {
+		// 	log.Debug("window too small")
+		// 	m.tooSmall = true
+		// } else {
+		// 	m.tooSmall = false
+		// }
 
 	case tea.Msg:
 		switch msg {
@@ -128,6 +150,9 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "TasksRefreshed":
 			// If tasks are loaded, update the lists
 			return m, m.setListTasks
+		case "ModeSet":
+			// TODO: this is a buffer to make sure border colors change. is it necessary???
+			return m, nil
 		}
 	}
 
@@ -147,15 +172,27 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.fullyLoaded = true
 			return m, nil
 		}
-
-	} else {
-		var cmd tea.Cmd
-		m.lists[m.focused], cmd = m.lists[m.focused].Update(msg)
-		return m, cmd
+		return m, nil
 	}
 
-	log.Debug("returning nil")
-	return m, nil
+	var cmd tea.Cmd
+
+	switch m.mode {
+	case listMode:
+		m.lists[m.focused], cmd = m.lists[m.focused].Update(msg)
+	case inputMode:
+		var form tea.Model
+		form, cmd = m.inputForm.Update(msg)
+		if f, ok := form.(*huh.Form); ok {
+			m.inputForm = f
+		}
+	}
+
+	if m.inputForm.State == huh.StateCompleted {
+		return m, tea.Batch(m.createTask, m.setMode(listMode), m.setListTasks)
+	}
+
+	return m, cmd
 }
 
 func (m *model) View() string {
@@ -163,9 +200,14 @@ func (m *model) View() string {
 		return "Loading..."
 	}
 
-	if m.tooSmall {
-		return "Window too small. Please resize."
-	}
+	return m.fullView()
+}
 
-	return m.fullOutput()
+// setMode sets the mode!
+func (m *model) setMode(mode mode) tea.Cmd {
+	// mode
+	return func() tea.Msg {
+		m.mode = mode
+		return tea.Msg("ModeSet")
+	}
 }
