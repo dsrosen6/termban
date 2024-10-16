@@ -77,10 +77,9 @@ func NewModel() *model {
 
 	log.Info("model created")
 	return &model{
-		db:        db,
-		mode:      listMode,
-		focused:   ToDo,
-		inputForm: NewInputForm(),
+		db:      db,
+		mode:    listMode,
+		focused: ToDo,
 	}
 }
 
@@ -89,7 +88,6 @@ func (m *model) Init() tea.Cmd {
 	return tea.Batch(
 		m.DBGetTasks,
 		m.initLists,
-		m.inputForm.Init(),
 	)
 }
 
@@ -110,7 +108,8 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				log.Debug("user deleted task")
 				return m, m.deleteTask
 			case "a":
-				return m, m.setMode(inputMode)
+				log.Debug("user pressed a to add task")
+				return m, m.initForm
 			}
 
 		case inputMode:
@@ -137,35 +136,28 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case tea.Msg:
 		switch msg {
+		case "FullyLoaded":
+			m.fullyLoaded = true
 		case "TasksLoaded":
 			m.tasksLoaded = true
 		case "ListInit":
 			m.listInit = true
-		// Sent by Create, Update, and Delete to initiate a refresh
 		case "TasksRefreshNeeded":
 			log.Debug("task refresh needed")
-			m.inputForm = NewInputForm()
 			return m, m.DBGetTasks
-		// Sent by GetTasks after tasks are loaded
 		case "TasksRefreshed":
 			// If tasks are loaded, update the lists
 			log.Debug("task refresh msg received")
 			log.Debug("setting cmdActive to false")
 			m.cmdActive = false
 			return m, m.setListTasks
-		case "ModeSet":
-			// TODO: this is a buffer to make sure border colors change. is it necessary???
-			log.Debug("mode set", "mode", m.mode)
-			return m, nil
+		case "FormInit":
+			return m, m.setMode(inputMode)
 		}
 	}
 
 	if !m.fullyLoaded {
-		log.Debug("model not fully loaded")
-		log.Debug("statuses", "tasksLoaded", m.tasksLoaded, "listInit", m.listInit, "sizeObtained", m.sizeObtained)
-
 		if m.tasksLoaded && m.listInit && m.sizeObtained {
-			log.Debug("tasks loaded, list init, and size obtained")
 			for i := range m.lists {
 				m.lists[i].SetSize(m.colWidth(), m.colHeight())
 			}
@@ -173,9 +165,14 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.setListTasks()
 
 			log.Info("model fully loaded")
-			m.fullyLoaded = true
-			return m, nil
+			return m, m.setFullyLoaded
+
 		}
+		log.Debug("init tasks not done",
+			"tasksLoaded", m.tasksLoaded,
+			"listInit", m.listInit,
+			"sizeObtained", m.sizeObtained)
+
 		return m, nil
 	}
 
@@ -185,24 +182,31 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case listMode:
 		log.Debug("updating focused list", "listStatus", m.focused)
 		m.lists[m.focused], cmd = m.lists[m.focused].Update(msg)
-	case inputMode:
-		log.Debug("updating input form")
-		var form tea.Model
-		form, cmd = m.inputForm.Update(msg)
-		if f, ok := form.(*huh.Form); ok {
-			m.inputForm = f
-		}
-	}
 
-	if m.inputForm.State == huh.StateCompleted {
-		if !m.cmdActive {
-			log.Debug("setting cmdActive to true")
-			m.cmdActive = true
-			return m, tea.Batch(m.createTask, m.setMode(listMode), m.setListTasks)
+	case inputMode:
+		if m.inputForm != nil {
+			if m.inputForm.State == huh.StateCompleted {
+				if !m.cmdActive {
+					log.Debug("setting cmdActive to true")
+					m.cmdActive = true
+					return m, tea.Batch(m.createTask, m.setMode(listMode), m.setListTasks)
+				}
+			}
+
+			var form tea.Model
+			log.Debug("updating input form")
+			form, cmd = m.inputForm.Update(msg)
+			if f, ok := form.(*huh.Form); ok {
+				m.inputForm = f
+			}
+
+		} else {
+			log.Debug("inputForm is nil")
 		}
 	}
 
 	return m, cmd
+
 }
 
 func (m *model) View() string {
@@ -213,11 +217,24 @@ func (m *model) View() string {
 	return m.fullView()
 }
 
+func (m *model) initForm() tea.Msg {
+	m.inputForm = NewInputForm()
+	log.Debug("form set")
+	m.inputForm.Init()
+	log.Debug("form initiated")
+	return tea.Msg("FormInit")
+}
+
 // setMode sets the mode!
 func (m *model) setMode(mode mode) tea.Cmd {
 	// mode
 	return func() tea.Msg {
 		m.mode = mode
+		log.Debug("mode set", "mode", m.mode)
 		return tea.Msg("ModeSet")
 	}
+}
+
+func (m *model) setFullyLoaded() tea.Msg {
+	return tea.Msg("FullyLoaded")
 }

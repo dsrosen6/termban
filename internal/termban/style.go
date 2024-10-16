@@ -15,7 +15,7 @@ func (m *model) colWidth() int {
 }
 
 func (m *model) colHeight() int {
-	return m.availHeight * 2 / 3
+	return m.availHeight * 3 / 4
 }
 
 func (m *model) inputWidth() int {
