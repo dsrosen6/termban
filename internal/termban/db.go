@@ -76,7 +76,10 @@ func (m *model) DBGetTasks() tea.Msg {
 		return tea.Msg("TasksRefreshed")
 	}
 
-	m.tasksLoaded = true
+	if !m.tasksLoaded {
+		m.tasksLoaded = true
+	}
+
 	log.Debug("tasks successfully loaded")
 	return tea.Msg("TasksLoaded")
 }

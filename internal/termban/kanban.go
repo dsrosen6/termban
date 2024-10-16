@@ -77,9 +77,10 @@ func NewModel() *model {
 
 	log.Info("model created")
 	return &model{
-		db:      db,
-		mode:    listMode,
-		focused: ToDo,
+		db:        db,
+		mode:      listMode,
+		focused:   ToDo,
+		inputForm: NewInputForm(),
 	}
 }
 
@@ -88,6 +89,7 @@ func (m *model) Init() tea.Cmd {
 	return tea.Batch(
 		m.DBGetTasks,
 		m.initLists,
+		m.inputForm.Init(),
 	)
 }
 
@@ -109,7 +111,7 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				return m, m.deleteTask
 			case "a":
 				log.Debug("user pressed a to add task")
-				return m, m.initForm
+				return m, m.resetForm
 			}
 
 		case inputMode:
@@ -138,19 +140,16 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		switch msg {
 		case "FullyLoaded":
 			m.fullyLoaded = true
-		case "TasksLoaded":
-			m.tasksLoaded = true
-		case "ListInit":
-			m.listInit = true
 		case "TasksRefreshNeeded":
 			log.Debug("task refresh needed")
 			return m, m.DBGetTasks
 		case "TasksRefreshed":
 			// If tasks are loaded, update the lists
-			log.Debug("task refresh msg received")
-			log.Debug("setting cmdActive to false")
+			log.Debug("tasks refreshed")
 			m.cmdActive = false
 			return m, m.setListTasks
+		case "ListTasksSet":
+			return m, m.setMode(listMode)
 		case "FormInit":
 			return m, tea.Batch(
 				m.setMode(inputMode),
@@ -165,11 +164,11 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.lists[i].SetSize(m.colWidth(), m.colHeight())
 			}
 
-			m.setListTasks()
-
 			log.Info("model fully loaded")
-			return m, m.setFullyLoaded
-
+			return m, tea.Batch(
+				m.setFullyLoaded,
+				m.setListTasks,
+			)
 		}
 		log.Debug("init tasks not done",
 			"tasksLoaded", m.tasksLoaded,
@@ -188,12 +187,12 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case inputMode:
 		if m.inputForm != nil {
-			log.Debug("huh form state", "state", m.inputForm.State)
+			// log.Debug("huh form state", "state", m.inputForm.State)
 			switch m.inputForm.State {
 
 			case huh.StateNormal:
 				var form tea.Model
-				log.Debug("updating input form")
+				// log.Debug("updating input form")
 				form, cmd = m.inputForm.Update(msg)
 				if f, ok := form.(*huh.Form); ok {
 					m.inputForm = f
@@ -203,7 +202,7 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				if !m.cmdActive {
 					log.Debug("setting cmdActive to true")
 					m.cmdActive = true
-					cmd = tea.Batch(m.createTask, m.setMode(listMode), m.setListTasks)
+					cmd = m.createTask
 				}
 			}
 
@@ -212,7 +211,7 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 	}
 
-	log.Debug("sending cmd", "cmd", cmd)
+	// log.Debug("sending cmd", "cmd", cmd)
 	return m, cmd
 
 }
@@ -225,7 +224,7 @@ func (m *model) View() string {
 	return m.fullView()
 }
 
-func (m *model) initForm() tea.Msg {
+func (m *model) resetForm() tea.Msg {
 	m.inputForm = NewInputForm()
 	log.Debug("form set")
 	return tea.Msg("FormInit")

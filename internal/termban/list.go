@@ -61,6 +61,8 @@ func (m *model) initLists() tea.Msg {
 	}
 
 	log.Debug("lists successfully initialized")
+
+	m.listInit = true
 	return tea.Msg("ListInit")
 }
 
