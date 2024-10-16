@@ -152,7 +152,10 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.cmdActive = false
 			return m, m.setListTasks
 		case "FormInit":
-			return m, m.setMode(inputMode)
+			return m, tea.Batch(
+				m.setMode(inputMode),
+				m.inputForm.Init(),
+			)
 		}
 	}
 
@@ -225,8 +228,6 @@ func (m *model) View() string {
 func (m *model) initForm() tea.Msg {
 	m.inputForm = NewInputForm()
 	log.Debug("form set")
-	m.inputForm.Init()
-	log.Debug("form initiated")
 	return tea.Msg("FormInit")
 }
 
