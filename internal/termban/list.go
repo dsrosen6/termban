@@ -79,12 +79,14 @@ func (m *model) setListTasks() tea.Msg {
 }
 
 func (m *model) createTask() tea.Msg {
+	log.Debug("createTask called")
 	task := Task{
-		TaskTitle: m.inputForm.GetString("TaskTitle"),
-		TaskDesc:  m.inputForm.GetString("TaskDesc"),
+		TaskTitle:  m.inputForm.GetString("TaskTitle"),
+		TaskDesc:   m.inputForm.GetString("TaskDesc"),
+		TaskStatus: m.focused,
 	}
 
-	if err := m.CreateTask(task); err != nil {
+	if err := m.DBInsertTask(task); err != nil {
 		return errMsg{err}
 	}
 
@@ -93,7 +95,7 @@ func (m *model) createTask() tea.Msg {
 }
 
 func (m *model) deleteTask() tea.Msg {
-	if err := m.DeleteTask(m.selectedTask().TaskID); err != nil {
+	if err := m.DBDeleteTask(m.selectedTask().TaskID); err != nil {
 		return errMsg{err}
 	}
 

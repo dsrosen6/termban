@@ -8,10 +8,10 @@ func (m *model) fullView() string {
 
 func (m *model) inputView() string {
 	if m.mode == inputMode {
-		return m.InputFocusedStyle().Render(m.inputForm.View())
+		return m.InputStyle().Render(centerVertical(m.inputForm.View()))
 	}
 
-	return m.InputInactiveStyle().Render("")
+	return m.InputStyle().Render("")
 }
 
 func (m *model) listsView() string {

@@ -30,7 +30,11 @@ func OpenDB() (*sql.DB, error) {
 	return db, nil
 }
 
-func (m *model) CreateTask(task Task) error {
+func (m *model) DBInsertTask(task Task) error {
+	log.Debug("new task received",
+		"title", task.TaskTitle,
+		"desc", task.TaskDesc,
+		"status", task.TaskStatus)
 	stmt, err := m.db.Prepare("INSERT INTO tasks(title, description, status) VALUES(?, ?, ?)")
 	if err != nil {
 		return fmt.Errorf("could not prepare statement: %w", err)
@@ -41,11 +45,16 @@ func (m *model) CreateTask(task Task) error {
 		return fmt.Errorf("could not exec statement: %w", err)
 	}
 
+	log.Info("task added to db",
+		"title", task.TaskTitle,
+		"desc", task.TaskDesc,
+		"status", task.TaskStatus)
+
 	return nil
 }
 
-func (m *model) GetTasks() tea.Msg {
-	log.Debug("getting tasks")
+func (m *model) DBGetTasks() tea.Msg {
+	log.Debug("getting tasks from db")
 	rows, err := m.db.Query("SELECT * FROM tasks")
 	if err != nil {
 		return errMsg{err}
@@ -72,7 +81,7 @@ func (m *model) GetTasks() tea.Msg {
 	return tea.Msg("TasksLoaded")
 }
 
-func (m *model) UpdateTask(task Task) error {
+func (m *model) DBUpdateTask(task Task) error {
 	stmt, err := m.db.Prepare("UPDATE tasks SET title=?, description=?, status=? WHERE id=?")
 	if err != nil {
 		return fmt.Errorf("could not prepare statement: %w", err)
@@ -86,7 +95,7 @@ func (m *model) UpdateTask(task Task) error {
 	return nil
 }
 
-func (m *model) DeleteTask(id int) error {
+func (m *model) DBDeleteTask(id int) error {
 	stmt, err := m.db.Prepare("DELETE FROM tasks WHERE id=?")
 	if err != nil {
 		return fmt.Errorf("could not prepare statement: %w", err)

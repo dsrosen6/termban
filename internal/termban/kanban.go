@@ -16,11 +16,12 @@ import (
 var log *slog.Logger
 
 type model struct {
-	db           *sql.DB
-	fullyLoaded  bool
-	tasksLoaded  bool
-	listInit     bool
-	sizeObtained bool
+	db              *sql.DB
+	cmdAcknowledged bool
+	fullyLoaded     bool
+	tasksLoaded     bool
+	listInit        bool
+	sizeObtained    bool
 	mode
 	size
 	tasks     []Task
@@ -85,7 +86,7 @@ func NewModel() *model {
 func (m *model) Init() tea.Cmd {
 	log.Debug("initializing model")
 	return tea.Batch(
-		m.GetTasks,
+		m.DBGetTasks,
 		m.initLists,
 		m.inputForm.Init(),
 	)
@@ -145,10 +146,11 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.listInit = true
 		// Sent by Create, Update, and Delete to initiate a refresh
 		case "TasksRefreshNeeded":
-			return m, m.GetTasks
+			return m, m.DBGetTasks
 		// Sent by GetTasks after tasks are loaded
 		case "TasksRefreshed":
 			// If tasks are loaded, update the lists
+			m.cmdAcknowledged = false
 			return m, m.setListTasks
 		case "ModeSet":
 			// TODO: this is a buffer to make sure border colors change. is it necessary???
@@ -189,7 +191,10 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	}
 
 	if m.inputForm.State == huh.StateCompleted {
-		return m, tea.Batch(m.createTask, m.setMode(listMode), m.setListTasks)
+		if !m.cmdAcknowledged {
+			m.cmdAcknowledged = true
+			return m, tea.Batch(m.createTask, m.setMode(listMode), m.setListTasks)
+		}
 	}
 
 	return m, cmd

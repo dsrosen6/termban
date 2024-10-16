@@ -27,12 +27,8 @@ func (m *model) HiddenBorder() lipgloss.Style {
 	return lipgloss.NewStyle().Border(lipgloss.HiddenBorder()).Width(m.availWidth).Height(m.availHeight)
 }
 
-func (m *model) InputFocusedStyle() lipgloss.Style {
-	return lipgloss.NewStyle().Border(lipgloss.RoundedBorder()).BorderForeground(green).Width(m.inputWidth())
-}
-
-func (m *model) InputInactiveStyle() lipgloss.Style {
-	return lipgloss.NewStyle().Border(lipgloss.HiddenBorder()).BorderForeground(grey).Width(m.inputWidth())
+func (m *model) InputStyle() lipgloss.Style {
+	return lipgloss.NewStyle().Border(lipgloss.HiddenBorder()).BorderForeground(green).Width(m.inputWidth())
 }
 
 func (m *model) FocusColumnView() lipgloss.Style {
@@ -45,4 +41,8 @@ func (m *model) InactiveFocusColumnView() lipgloss.Style {
 
 func (m *model) RegColumnView() lipgloss.Style {
 	return lipgloss.NewStyle().Border(lipgloss.HiddenBorder()).BorderForeground(green).Faint(true).Width(m.colWidth()).Height(m.colHeight()).Padding(1, 1)
+}
+
+func centerVertical(s string) string {
+	return lipgloss.NewStyle().AlignVertical(lipgloss.Center).Render(s)
 }
