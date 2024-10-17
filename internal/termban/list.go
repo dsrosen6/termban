@@ -13,6 +13,8 @@ const (
 	Done
 )
 
+type TaskMovedMsg struct{ Status TaskStatus }
+
 // These are all prepended with "Task" so as to not conflict with the other methods right below it.
 // Sure, I didn't need to do this with ID, Description, or Status, but I have clinical OCD.
 // I would never, ever stop thinking about it.
@@ -29,29 +31,40 @@ func (t Task) Title() string       { return t.TaskTitle }
 func (t Task) Description() string { return t.TaskDesc }
 func (t Task) Status() TaskStatus  { return t.TaskStatus }
 
-func (m *model) NextColumn() tea.Msg {
-	if m.focused == Done {
-		m.focused = ToDo
+func (s TaskStatus) Next() TaskStatus {
+	if s == Done {
+		return ToDo
 	} else {
-		m.focused++
+		return s + 1
 	}
-
-	return tea.Msg("NextColumn")
 }
 
-func (m *model) PrevColumn() tea.Msg {
-	if m.focused == ToDo {
-		m.focused = Done
+func (s TaskStatus) Prev() TaskStatus {
+	if s == ToDo {
+		return Done
 	} else {
-		m.focused--
+		return s - 1
 	}
+}
 
-	return tea.Msg("PrevColumn")
+func (m *model) ChangeFocusColumn(newStatus TaskStatus) tea.Cmd {
+	return func() tea.Msg {
+		m.focused = newStatus
+
+		return tea.Msg("ChangeFocusColumn")
+	}
+}
+
+func CustomDelegate() list.ItemDelegate {
+	d := list.NewDefaultDelegate()
+	d.ShowDescription = false
+
+	return d
 }
 
 func (m *model) initLists() tea.Msg {
 	log.Debug("initializing lists")
-	defaultList := list.New([]list.Item{}, list.NewDefaultDelegate(), 0, 0)
+	defaultList := list.New([]list.Item{}, CustomDelegate(), 0, 0)
 	defaultList.SetShowHelp(false)
 	m.lists = []list.Model{defaultList, defaultList, defaultList}
 
@@ -97,6 +110,18 @@ func (m *model) createTask() tea.Msg {
 	}
 
 	return tea.Msg("TasksRefreshNeeded")
+}
+
+func (m *model) moveTask(newStatus TaskStatus) tea.Cmd {
+	return func() tea.Msg {
+		st := m.selectedTask()
+		st.TaskStatus = newStatus
+		if err := m.DBUpdateTask(st); err != nil {
+			return errMsg{err}
+		}
+
+		return TaskMovedMsg{newStatus}
+	}
 }
 
 func (m *model) deleteTask() tea.Msg {

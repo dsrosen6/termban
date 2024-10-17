@@ -33,12 +33,9 @@ func (m *model) listsView() string {
 }
 
 func (m *model) getFocusColumnStyle() lipgloss.Style {
-	var style lipgloss.Style
+	style := m.FocusColumnView()
 
-	switch m.mode {
-	case listMode:
-		style = m.FocusColumnView()
-	case inputMode:
+	if m.mode == inputMode {
 		style = m.InactiveFocusColumnView()
 	}
 

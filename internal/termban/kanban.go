@@ -34,6 +34,7 @@ type mode int
 
 const (
 	listMode mode = iota
+	moveMode
 	inputMode
 )
 
@@ -103,17 +104,27 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				log.Debug("user quit")
 				return m, tea.Quit
 			case "left":
-				return m, m.PrevColumn
+				return m, m.ChangeFocusColumn(m.focused.Prev())
 			case "right":
-				return m, m.NextColumn
+				return m, m.ChangeFocusColumn(m.focused.Next())
 			case "d":
 				log.Debug("user deleted task")
 				return m, m.deleteTask
 			case "a":
 				log.Debug("user pressed a to add task")
 				return m, m.resetForm
+			case "m":
+				return m, m.setMode(moveMode)
 			}
-
+		case moveMode:
+			switch msg.String() {
+			case "left":
+				return m, m.moveTask(m.focused.Prev())
+			case "right":
+				return m, m.moveTask(m.focused.Next())
+			case "esc":
+				return m, m.setMode(listMode)
+			}
 		case inputMode:
 			switch msg.String() {
 			case "esc":
@@ -135,6 +146,12 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		// } else {
 		// 	m.tooSmall = false
 		// }
+	case TaskMovedMsg:
+		log.Debug("task moved", "status", msg.Status)
+		return m, tea.Batch(
+			m.ChangeFocusColumn(msg.Status),
+			m.DBGetTasks,
+		)
 
 	case tea.Msg:
 		switch msg {
@@ -149,7 +166,10 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.cmdActive = false
 			return m, m.setListTasks
 		case "ListTasksSet":
-			return m, m.setMode(listMode)
+			if m.mode == inputMode {
+				return m, m.setMode(listMode)
+			}
+			return m, nil
 		case "FormInit":
 			return m, tea.Batch(
 				m.setMode(inputMode),
@@ -181,7 +201,7 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var cmd tea.Cmd
 
 	switch m.mode {
-	case listMode:
+	case listMode, moveMode:
 		log.Debug("updating focused list", "listStatus", m.focused)
 		m.lists[m.focused], cmd = m.lists[m.focused].Update(msg)
 
