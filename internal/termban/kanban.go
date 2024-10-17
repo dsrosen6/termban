@@ -97,6 +97,18 @@ func (m *model) Init() tea.Cmd {
 func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
+		// Shared keys
+		switch msg.String() {
+		case " ":
+			switch m.mode {
+			case listMode:
+				return m, m.setMode(moveMode)
+			case moveMode:
+				return m, m.setMode(listMode)
+			}
+		}
+
+		// Mode-dependant keys
 		switch m.mode {
 		case listMode:
 			switch msg.String() {
@@ -113,8 +125,6 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			case "a":
 				log.Debug("user pressed a to add task")
 				return m, m.resetForm
-			case "m":
-				return m, m.setMode(moveMode)
 			}
 		case moveMode:
 			switch msg.String() {
