@@ -4,6 +4,7 @@ import "github.com/charmbracelet/lipgloss"
 
 var (
 	green = lipgloss.Color("085")
+	blue  = lipgloss.Color("039")
 	grey  = lipgloss.Color("243")
 
 	// used to get frame size
@@ -23,16 +24,25 @@ func (m *model) inputWidth() int {
 	return lipgloss.Width(m.listsView()) - h
 }
 
+func (m *model) ModeColor() lipgloss.Color {
+	color := green
+
+	if m.mode == moveMode {
+		color = blue
+	}
+
+	return color
+}
 func (m *model) HiddenBorder() lipgloss.Style {
 	return lipgloss.NewStyle().Border(lipgloss.HiddenBorder()).Width(m.availWidth).Height(m.availHeight)
 }
 
 func (m *model) InputStyle() lipgloss.Style {
-	return lipgloss.NewStyle().Border(lipgloss.HiddenBorder()).BorderForeground(green).Width(m.inputWidth())
+	return lipgloss.NewStyle().Border(lipgloss.HiddenBorder()).Width(m.inputWidth())
 }
 
 func (m *model) FocusColumnView() lipgloss.Style {
-	return lipgloss.NewStyle().Border(lipgloss.RoundedBorder()).BorderForeground(green).Width(m.colWidth()).Height(m.colHeight()).Padding(1, 1)
+	return lipgloss.NewStyle().Border(lipgloss.RoundedBorder()).BorderForeground(m.ModeColor()).Width(m.colWidth()).Height(m.colHeight()).Padding(1, 1)
 }
 
 func (m *model) InactiveFocusColumnView() lipgloss.Style {
@@ -40,7 +50,7 @@ func (m *model) InactiveFocusColumnView() lipgloss.Style {
 }
 
 func (m *model) RegColumnView() lipgloss.Style {
-	return lipgloss.NewStyle().Border(lipgloss.HiddenBorder()).BorderForeground(green).Faint(true).Width(m.colWidth()).Height(m.colHeight()).Padding(1, 1)
+	return lipgloss.NewStyle().Border(lipgloss.HiddenBorder()).BorderForeground(m.ModeColor()).Width(m.colWidth()).Height(m.colHeight()).Padding(1, 1)
 }
 
 func centerVertical(s string) string {
