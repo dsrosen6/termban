@@ -9,7 +9,7 @@ func (m *model) fullView() string {
 func (m *model) inputView() string {
 	if m.mode == inputMode {
 		// log.Debug("putting input form in view")
-		return m.InputStyle().Render(centerVertical(m.inputForm.View()))
+		return m.InputStyle().Render(m.inputForm.View())
 	}
 
 	// log.Debug("rendering view without input form")

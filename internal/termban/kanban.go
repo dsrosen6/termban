@@ -13,6 +13,11 @@ import (
 	_ "github.com/mattn/go-sqlite3"
 )
 
+const (
+	minWidth  int = 89
+	minHeight int = 27
+)
+
 var log *slog.Logger
 
 type model struct {
@@ -39,7 +44,10 @@ const (
 )
 
 type size struct {
-	availWidth, availHeight int
+	fullWindowWidth  int
+	fullWindowHeight int
+	availWidth       int
+	availHeight      int
 }
 
 type (
@@ -65,7 +73,7 @@ func NewInputForm() *huh.Form {
 				Placeholder("Description").
 				Key("TaskDesc"),
 		),
-	).WithShowHelp(false)
+	).WithShowHelp(false).WithTheme(FormTheme()).WithHeight(1)
 }
 
 func NewModel() *model {
@@ -145,17 +153,19 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.WindowSizeMsg:
 		log.Debug("got window size message")
 		h, v := dummyBorder.GetFrameSize()
+		m.fullWindowWidth = msg.Width
+		m.fullWindowHeight = msg.Height
 		m.availWidth = msg.Width - h
 		m.availHeight = msg.Height - v
 		m.sizeObtained = true
 		log.Debug("size obtained", "width", msg.Width, "height", msg.Height, "availWidth", m.availWidth, "availHeight", m.availHeight)
 
-		// if msg.Width < minWidth || msg.Height < minHeight {
-		// 	log.Debug("window too small")
-		// 	m.tooSmall = true
-		// } else {
-		// 	m.tooSmall = false
-		// }
+		if m.fullyLoaded {
+			for i := range m.lists {
+				m.lists[i].SetSize(m.colWidth(), m.colHeight())
+			}
+		}
+
 	case TaskMovedMsg:
 		log.Debug("task moved", "status", msg.Status)
 		return m, tea.Batch(
@@ -247,6 +257,10 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (m *model) View() string {
+	if m.tooSmall() {
+		return m.FullyCenter("Please increase window size!")
+	}
+
 	if !m.fullyLoaded {
 		return "Loading..."
 	}
@@ -272,4 +286,12 @@ func (m *model) setMode(mode mode) tea.Cmd {
 
 func (m *model) setFullyLoaded() tea.Msg {
 	return tea.Msg("FullyLoaded")
+}
+
+func (m *model) tooSmall() bool {
+	if m.fullWindowWidth < minWidth || m.fullWindowHeight < minHeight {
+		return true
+	}
+
+	return false
 }
