@@ -9,6 +9,7 @@ import (
 	"github.com/charmbracelet/bubbles/list"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/huh"
+	"github.com/charmbracelet/lipgloss"
 	"github.com/dsrosen6/termban/internal/logger"
 	_ "github.com/mattn/go-sqlite3"
 )
@@ -32,6 +33,7 @@ type model struct {
 	tasks     []Task
 	lists     []list.Model
 	focused   TaskStatus
+	mainColor lipgloss.Color
 	inputForm *huh.Form
 }
 
@@ -88,6 +90,7 @@ func NewModel() *model {
 	return &model{
 		db:        db,
 		mode:      listMode,
+		mainColor: green,
 		focused:   ToDo,
 		inputForm: NewInputForm(),
 	}

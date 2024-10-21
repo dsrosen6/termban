@@ -1,6 +1,7 @@
 package termban
 
 import (
+	"github.com/charmbracelet/bubbles/list"
 	"github.com/charmbracelet/huh"
 	"github.com/charmbracelet/lipgloss"
 )
@@ -53,6 +54,14 @@ func (m *model) HiddenBorder() lipgloss.Style {
 		Height(m.availHeight)
 }
 
+func (m *model) ListStyle() list.Styles {
+	s := list.DefaultStyles()
+
+	s.Title = lipgloss.NewStyle().
+		Foreground(green)
+	return s
+}
+
 func (m *model) InputStyle() lipgloss.Style {
 	return lipgloss.NewStyle().Width(m.inputWidth()).Height(m.inputHeight()).Padding(0, 1, 0, 1)
 }
@@ -83,6 +92,10 @@ func (m *model) RegColumnView() lipgloss.Style {
 
 func (m *model) FullyCenter(s string) string {
 	return lipgloss.NewStyle().Align(lipgloss.Center, lipgloss.Center).Width(m.availWidth).Height(m.availHeight).Render(s)
+}
+
+func CenterHorizontal(s string, width int) string {
+	return lipgloss.NewStyle().AlignHorizontal(lipgloss.Center).Width(width).Render(s)
 }
 
 func CenterVertical(s string, width, height int) string {

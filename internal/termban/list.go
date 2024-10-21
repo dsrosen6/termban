@@ -66,9 +66,12 @@ func (m *model) initLists() tea.Msg {
 	log.Debug("initializing lists")
 	defaultList := list.New([]list.Item{}, CustomDelegate(), 0, 0)
 	defaultList.SetShowHelp(false)
+	defaultList.Styles = m.ListStyle()
 	m.lists = []list.Model{defaultList, defaultList, defaultList}
 
-	titles := []string{"To Do", "Doing", "Done"}
+	titles := []string{
+		"TO DO", "IN PROGRESS", "DONE"}
+
 	for i, title := range titles {
 		m.lists[i].Title = title
 	}
