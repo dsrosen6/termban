@@ -3,12 +3,25 @@ package termban
 import (
 	"database/sql"
 	"fmt"
+	"os"
+	"os/user"
 
 	tea "github.com/charmbracelet/bubbletea"
 )
 
 func OpenDB() (*sql.DB, error) {
-	db, err := sql.Open("sqlite3", "./tasks.db") // TODO: Permanent location
+	usr, err := user.Current()
+	if err != nil {
+		return nil, fmt.Errorf("could not get current user: %w", err)
+	}
+	h := usr.HomeDir
+
+	dbFolder := fmt.Sprintf("%s/Library/termban/db", h)
+	if err := os.MkdirAll(dbFolder, 0755); err != nil {
+		return nil, fmt.Errorf("could not create db folder: %w", err)
+	}
+
+	db, err := sql.Open("sqlite3", fmt.Sprintf("%s/Library/termban/db/tasks.db", h)) // TODO: Permanent location
 	if err != nil {
 		return nil, fmt.Errorf("error opening db: %w", err)
 	}
