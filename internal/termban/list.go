@@ -67,6 +67,7 @@ func (m *model) initLists() tea.Msg {
 	defaultList := list.New([]list.Item{}, CustomDelegate(), 0, 0)
 	defaultList.SetShowHelp(false)
 	defaultList.Styles = m.ListStyle()
+
 	m.lists = []list.Model{defaultList, defaultList, defaultList}
 
 	titles := []string{
@@ -95,6 +96,7 @@ func (m *model) setListTasks() tea.Msg {
 
 	for status, itemList := range items {
 		m.lists[status].SetItems(itemList)
+		m.lists[status].SetShowStatusBar(false)
 	}
 
 	return tea.Msg("ListTasksSet")

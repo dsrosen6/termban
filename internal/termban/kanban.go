@@ -35,6 +35,7 @@ type model struct {
 	focused   TaskStatus
 	mainColor lipgloss.Color
 	inputForm *huh.Form
+	listStyle list.Styles
 }
 
 type mode int
@@ -161,6 +162,11 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.availWidth = msg.Width - h
 		m.availHeight = msg.Height - v
 		m.sizeObtained = true
+		m.listStyle = m.ListStyle()
+		for i := range m.lists {
+			m.lists[i].Styles = m.listStyle
+		}
+
 		log.Debug("size obtained", "width", msg.Width, "height", msg.Height, "availWidth", m.availWidth, "availHeight", m.availHeight)
 
 		if m.fullyLoaded {
@@ -283,6 +289,10 @@ func (m *model) setMode(mode mode) tea.Cmd {
 	return func() tea.Msg {
 		m.mode = mode
 		log.Debug("mode set", "mode", m.mode)
+		m.mainColor = m.ModeColor()
+		for i := range m.lists {
+			m.lists[i].Styles = m.ListStyle()
+		}
 		return tea.Msg("ModeSet")
 	}
 }

@@ -55,15 +55,22 @@ func (m *model) HiddenBorder() lipgloss.Style {
 }
 
 func (m *model) ListStyle() list.Styles {
-	s := list.DefaultStyles()
+	var s list.Styles
+	s.TitleBar = lipgloss.NewStyle().
+		Padding(0).
+		Border(lipgloss.NormalBorder(), false, false, true, false).
+		BorderForeground(m.ModeColor()).
+		Align(lipgloss.Center).
+		Width(m.colWidth() - 2)
 
 	s.Title = lipgloss.NewStyle().
-		Foreground(green)
+		Foreground(m.ModeColor()).
+		Align(lipgloss.Center)
 	return s
 }
 
 func (m *model) InputStyle() lipgloss.Style {
-	return lipgloss.NewStyle().Width(m.inputWidth()).Height(m.inputHeight()).Padding(0, 1, 0, 1)
+	return lipgloss.NewStyle().Width(m.inputWidth()).Height(m.inputHeight()).Padding(1, 1, 0, 1)
 }
 
 func (m *model) TemplateColumnView() lipgloss.Style {
@@ -71,7 +78,7 @@ func (m *model) TemplateColumnView() lipgloss.Style {
 		Border(lipgloss.HiddenBorder()).
 		Width(m.colWidth()).
 		Height(m.colHeight()).
-		Padding(1, 1)
+		Padding(0, 1)
 }
 
 func (m *model) FocusColumnView() lipgloss.Style {
