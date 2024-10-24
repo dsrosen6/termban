@@ -3,7 +3,7 @@ package termban
 import "github.com/charmbracelet/lipgloss"
 
 func (m *model) fullView() string {
-	return m.HiddenBorder().Render(lipgloss.JoinVertical(lipgloss.Center, m.listsView(), m.inputView()))
+	return m.OuterFrame().Render(lipgloss.JoinVertical(lipgloss.Center, m.listsView(), m.inputView()))
 }
 
 func (m *model) inputView() string {

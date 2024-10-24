@@ -9,6 +9,10 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 )
 
+type db struct {
+	*sql.DB
+}
+
 func OpenDB() (*sql.DB, error) {
 	usr, err := user.Current()
 	if err != nil {
@@ -43,12 +47,12 @@ func OpenDB() (*sql.DB, error) {
 	return db, nil
 }
 
-func (m *model) DBInsertTask(task Task) error {
+func (db *db) DBInsertTask(task Task) error {
 	log.Debug("new task received",
 		"title", task.TaskTitle,
 		"desc", task.TaskDesc,
 		"status", task.TaskStatus)
-	stmt, err := m.db.Prepare("INSERT INTO tasks(title, description, status) VALUES(?, ?, ?)")
+	stmt, err := db.Prepare("INSERT INTO tasks(title, description, status) VALUES(?, ?, ?)")
 	if err != nil {
 		return fmt.Errorf("could not prepare statement: %w", err)
 	}
@@ -66,9 +70,9 @@ func (m *model) DBInsertTask(task Task) error {
 	return nil
 }
 
-func (m *model) DBGetTasks() tea.Msg {
+func (db *db) DBGetTasks() tea.Msg {
 	log.Debug("getting tasks from db")
-	rows, err := m.db.Query("SELECT * FROM tasks")
+	rows, err := db.Query("SELECT * FROM tasks")
 	if err != nil {
 		return errMsg{err}
 	}
@@ -97,8 +101,8 @@ func (m *model) DBGetTasks() tea.Msg {
 	return tea.Msg("TasksLoaded")
 }
 
-func (m *model) DBUpdateTask(task Task) error {
-	stmt, err := m.db.Prepare("UPDATE tasks SET title=?, description=?, status=? WHERE id=?")
+func (db *db) DBUpdateTask(task Task) error {
+	stmt, err := db.Prepare("UPDATE tasks SET title=?, description=?, status=? WHERE id=?")
 	if err != nil {
 		return fmt.Errorf("could not prepare statement: %w", err)
 	}
@@ -111,8 +115,8 @@ func (m *model) DBUpdateTask(task Task) error {
 	return nil
 }
 
-func (m *model) DBDeleteTask(id int) error {
-	stmt, err := m.db.Prepare("DELETE FROM tasks WHERE id=?")
+func (db *db) DBDeleteTask(id int) error {
+	stmt, err := db.Prepare("DELETE FROM tasks WHERE id=?")
 	if err != nil {
 		return fmt.Errorf("could not prepare statement: %w", err)
 	}

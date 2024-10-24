@@ -50,25 +50,40 @@ func (s TaskStatus) Prev() TaskStatus {
 func (m *model) ChangeFocusColumn(newStatus TaskStatus) tea.Cmd {
 	return func() tea.Msg {
 		m.focused = newStatus
-
+		m.setDelegate()
 		return tea.Msg("ChangeFocusColumn")
 	}
 }
 
-func CustomDelegate() list.ItemDelegate {
+func (m *model) FocusedDelegate() list.ItemDelegate {
 	d := list.NewDefaultDelegate()
 	d.ShowDescription = false
+
+	d.Styles.SelectedTitle = m.SelectedItemStyle()
+	d.Styles.NormalTitle = m.UnselectedItemStyle()
+
+	return d
+}
+
+func (m *model) NormalDelegate() list.ItemDelegate {
+	d := list.NewDefaultDelegate()
+	d.ShowDescription = false
+
+	d.Styles.SelectedTitle = m.UnselectedItemStyle()
+	d.Styles.NormalTitle = m.UnselectedItemStyle()
 
 	return d
 }
 
 func (m *model) initLists() tea.Msg {
 	log.Debug("initializing lists")
-	defaultList := list.New([]list.Item{}, CustomDelegate(), 0, 0)
+	defaultList := list.New([]list.Item{}, m.NormalDelegate(), m.colWidth, m.colHeight)
 	defaultList.SetShowHelp(false)
 	defaultList.Styles = m.ListStyle()
 
 	m.lists = []list.Model{defaultList, defaultList, defaultList}
+
+	m.setDelegate()
 
 	titles := []string{
 		"TO DO", "IN PROGRESS", "DONE"}
@@ -100,6 +115,17 @@ func (m *model) setListTasks() tea.Msg {
 	}
 
 	return tea.Msg("ListTasksSet")
+}
+
+func (m *model) setDelegate() tea.Msg {
+	for i := range m.lists {
+		if i == int(m.focused) {
+			m.lists[i].SetDelegate(m.FocusedDelegate())
+		} else {
+			m.lists[i].SetDelegate(m.NormalDelegate())
+		}
+	}
+	return nil
 }
 
 func (m *model) createTask() tea.Msg {

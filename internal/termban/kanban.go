@@ -15,8 +15,8 @@ import (
 )
 
 const (
-	minWidth  int = 89
-	minHeight int = 27
+// minWidth  int = 89
+// minHeight int = 27
 )
 
 var log *slog.Logger
@@ -33,9 +33,9 @@ type model struct {
 	tasks     []Task
 	lists     []list.Model
 	focused   TaskStatus
-	mainColor lipgloss.Color
 	inputForm *huh.Form
 	listStyle list.Styles
+	style
 }
 
 type mode int
@@ -49,8 +49,18 @@ const (
 type size struct {
 	fullWindowWidth  int
 	fullWindowHeight int
+	xFrameSize       int
+	yFrameSize       int
 	availWidth       int
 	availHeight      int
+	colWidth         int
+	colHeight        int
+}
+
+type style struct {
+	mainColor      lipgloss.Color
+	secondaryColor lipgloss.Color
+	border         lipgloss.Border
 }
 
 type (
@@ -91,9 +101,13 @@ func NewModel() *model {
 	return &model{
 		db:        db,
 		mode:      listMode,
-		mainColor: green,
 		focused:   ToDo,
 		inputForm: NewInputForm(),
+		style: style{
+			mainColor:      white,
+			secondaryColor: blue,
+			border:         lipgloss.RoundedBorder(),
+		},
 	}
 }
 
@@ -155,12 +169,7 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 
 	case tea.WindowSizeMsg:
-		log.Debug("got window size message")
-		h, v := dummyBorder.GetFrameSize()
-		m.fullWindowWidth = msg.Width
-		m.fullWindowHeight = msg.Height
-		m.availWidth = msg.Width - h
-		m.availHeight = msg.Height - v
+		m.setDimensions(msg)
 		m.sizeObtained = true
 		m.listStyle = m.ListStyle()
 		for i := range m.lists {
@@ -171,7 +180,7 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		if m.fullyLoaded {
 			for i := range m.lists {
-				m.lists[i].SetSize(m.colWidth(), m.colHeight())
+				m.lists[i].SetSize(m.colWidth, m.colHeight)
 			}
 		}
 
@@ -195,6 +204,13 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.cmdActive = false
 			return m, m.setListTasks
 		case "ListTasksSet":
+			// If no task is selected, select the last task in the focused list
+			// Used for when the last task in the list is deleted
+			if m.selectedTask() == (Task{}) && len(m.lists[m.focused].Items()) > 0 {
+				m.lists[m.focused].Select(len(m.lists[m.focused].Items()) - 1)
+			}
+
+			log.Debug("selected task", "task", m.selectedTask())
 			if m.mode == inputMode {
 				return m, m.setMode(listMode)
 			}
@@ -210,7 +226,7 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	if !m.fullyLoaded {
 		if m.tasksLoaded && m.listInit && m.sizeObtained {
 			for i := range m.lists {
-				m.lists[i].SetSize(m.colWidth(), m.colHeight())
+				m.lists[i].SetSize(m.colWidth, m.colHeight)
 			}
 
 			log.Info("model fully loaded")
@@ -266,10 +282,6 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (m *model) View() string {
-	if m.tooSmall() {
-		return m.FullyCenter("Please increase window size!")
-	}
-
 	if !m.fullyLoaded {
 		return "Loading..."
 	}
@@ -289,9 +301,9 @@ func (m *model) setMode(mode mode) tea.Cmd {
 	return func() tea.Msg {
 		m.mode = mode
 		log.Debug("mode set", "mode", m.mode)
-		m.mainColor = m.ModeColor()
 		for i := range m.lists {
 			m.lists[i].Styles = m.ListStyle()
+			m.setDelegate()
 		}
 		return tea.Msg("ModeSet")
 	}
@@ -301,10 +313,18 @@ func (m *model) setFullyLoaded() tea.Msg {
 	return tea.Msg("FullyLoaded")
 }
 
-func (m *model) tooSmall() bool {
-	if m.fullWindowWidth < minWidth || m.fullWindowHeight < minHeight {
-		return true
-	}
+func (m *model) setDimensions(msg tea.WindowSizeMsg) tea.Msg {
+	log.Debug("got window size message")
+	m.xFrameSize, m.yFrameSize = dummyBorder.GetFrameSize()
+	log.Debug("calculated dummyborder frame size", "horizontal", m.xFrameSize, "vertical", m.yFrameSize)
+	m.fullWindowWidth = msg.Width
+	m.fullWindowHeight = msg.Height
 
-	return false
+	m.availWidth = msg.Width - m.xFrameSize
+	m.availHeight = msg.Height - m.yFrameSize
+
+	m.colWidth = m.availWidth/3 - m.xFrameSize
+	m.colHeight = m.availHeight * 9 / 10
+
+	return nil
 }
