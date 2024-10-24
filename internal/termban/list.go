@@ -5,49 +5,49 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 )
 
-type TaskStatus int
+type status int
 
 const (
-	ToDo TaskStatus = iota
-	Doing
-	Done
+	todo status = iota
+	doing
+	done
 )
 
-type TaskMovedMsg struct{ Status TaskStatus }
+type taskMovedMsg struct{ status status }
 
-// These are all prepended with "Task" so as to not conflict with the other methods right below it.
+// These are all prepended with "task" so as to not conflict with the other methods right below it.
 // Sure, I didn't need to do this with ID, Description, or Status, but I have clinical OCD.
 // I would never, ever stop thinking about it.
-type Task struct {
-	TaskID    int
-	TaskTitle string
-	TaskDesc  string
-	TaskStatus
+type task struct {
+	id    int
+	title string
+	desc  string
+	status
 }
 
-func (t Task) FilterValue() string { return t.TaskTitle }
-func (t Task) ID() int             { return t.TaskID }
-func (t Task) Title() string       { return t.TaskTitle }
-func (t Task) Description() string { return t.TaskDesc }
-func (t Task) Status() TaskStatus  { return t.TaskStatus }
+func (t task) FilterValue() string { return t.title }
+func (t task) ID() int             { return t.id }
+func (t task) Title() string       { return t.title }
+func (t task) Description() string { return t.desc }
+func (t task) Status() status      { return t.status }
 
-func (s TaskStatus) Next() TaskStatus {
-	if s == Done {
-		return ToDo
+func (s status) next() status {
+	if s == done {
+		return todo
 	} else {
 		return s + 1
 	}
 }
 
-func (s TaskStatus) Prev() TaskStatus {
-	if s == ToDo {
-		return Done
+func (s status) prev() status {
+	if s == todo {
+		return done
 	} else {
 		return s - 1
 	}
 }
 
-func (m *model) ChangeFocusColumn(newStatus TaskStatus) tea.Cmd {
+func (m *model) changeFocusColumn(newStatus status) tea.Cmd {
 	return func() tea.Msg {
 		m.focused = newStatus
 		m.setDelegate()
@@ -55,31 +55,31 @@ func (m *model) ChangeFocusColumn(newStatus TaskStatus) tea.Cmd {
 	}
 }
 
-func (m *model) FocusedDelegate() list.ItemDelegate {
+func (m *model) focusedDelegate() list.ItemDelegate {
 	d := list.NewDefaultDelegate()
 	d.ShowDescription = false
 
-	d.Styles.SelectedTitle = m.SelectedItemStyle()
-	d.Styles.NormalTitle = m.UnselectedItemStyle()
+	d.Styles.SelectedTitle = m.selectedItemStyle()
+	d.Styles.NormalTitle = m.unselectedItemStyle()
 
 	return d
 }
 
-func (m *model) NormalDelegate() list.ItemDelegate {
+func (m *model) normalDelegate() list.ItemDelegate {
 	d := list.NewDefaultDelegate()
 	d.ShowDescription = false
 
-	d.Styles.SelectedTitle = m.UnselectedItemStyle()
-	d.Styles.NormalTitle = m.UnselectedItemStyle()
+	d.Styles.SelectedTitle = m.unselectedItemStyle()
+	d.Styles.NormalTitle = m.unselectedItemStyle()
 
 	return d
 }
 
 func (m *model) initLists() tea.Msg {
 	log.Debug("initializing lists")
-	defaultList := list.New([]list.Item{}, m.NormalDelegate(), m.colWidth, m.colHeight)
+	defaultList := list.New([]list.Item{}, m.normalDelegate(), m.colWidth, m.colHeight)
 	defaultList.SetShowHelp(false)
-	defaultList.Styles = m.ListStyle()
+	defaultList.Styles = m.customListStyle()
 
 	m.lists = []list.Model{defaultList, defaultList, defaultList}
 
@@ -99,14 +99,14 @@ func (m *model) initLists() tea.Msg {
 }
 
 func (m *model) setListTasks() tea.Msg {
-	items := map[TaskStatus][]list.Item{
-		ToDo:  {},
-		Doing: {},
-		Done:  {},
+	items := map[status][]list.Item{
+		todo:  {},
+		doing: {},
+		done:  {},
 	}
 
 	for _, t := range m.tasks {
-		items[t.TaskStatus] = append(items[t.TaskStatus], t)
+		items[t.status] = append(items[t.status], t)
 	}
 
 	for status, itemList := range items {
@@ -120,16 +120,16 @@ func (m *model) setListTasks() tea.Msg {
 func (m *model) setDelegate() tea.Msg {
 	for i := range m.lists {
 		if i == int(m.focused) {
-			m.lists[i].SetDelegate(m.FocusedDelegate())
+			m.lists[i].SetDelegate(m.focusedDelegate())
 		} else {
-			m.lists[i].SetDelegate(m.NormalDelegate())
+			m.lists[i].SetDelegate(m.normalDelegate())
 		}
 	}
 	return nil
 }
 
 func (m *model) refreshTasks() tea.Msg {
-	tasks, err := m.dbHandler.DBGetTasks()
+	tasks, err := m.dbHandler.getTasks()
 	if err != nil {
 		return errMsg{err}
 	}
@@ -149,44 +149,44 @@ func (m *model) refreshTasks() tea.Msg {
 
 func (m *model) insertTask() tea.Msg {
 	log.Debug("createTask called")
-	task := Task{
-		TaskTitle:  m.form.GetString("TaskTitle"),
-		TaskDesc:   m.form.GetString("TaskDesc"),
-		TaskStatus: m.focused,
+	task := task{
+		title:  m.form.GetString("TaskTitle"),
+		desc:   m.form.GetString("TaskDesc"),
+		status: m.focused,
 	}
 
-	if err := m.dbHandler.DBInsertTask(task); err != nil {
+	if err := m.dbHandler.insertTask(task); err != nil {
 		return errMsg{err}
 	}
 
 	return tea.Msg("TasksRefreshNeeded")
 }
 
-func (m *model) moveTask(newStatus TaskStatus) tea.Cmd {
+func (m *model) moveTask(newStatus status) tea.Cmd {
 	return func() tea.Msg {
 		st := m.selectedTask()
-		st.TaskStatus = newStatus
-		if err := m.dbHandler.DBUpdateTask(st); err != nil {
+		st.status = newStatus
+		if err := m.dbHandler.updateTask(st); err != nil {
 			return errMsg{err}
 		}
 
-		return TaskMovedMsg{newStatus}
+		return taskMovedMsg{newStatus}
 	}
 }
 
 func (m *model) deleteTask() tea.Msg {
-	if err := m.dbHandler.DBDeleteTask(m.selectedTask().TaskID); err != nil {
+	if err := m.dbHandler.deleteTask(m.selectedTask().id); err != nil {
 		return errMsg{err}
 	}
 
 	return tea.Msg("TasksRefreshNeeded")
 }
 
-func (m model) selectedTask() Task {
+func (m model) selectedTask() task {
 	st := m.lists[m.focused].SelectedItem()
 	if st == nil {
-		return Task{}
+		return task{}
 	}
 
-	return st.(Task)
+	return st.(task)
 }

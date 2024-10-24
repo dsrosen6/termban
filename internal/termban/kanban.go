@@ -28,9 +28,9 @@ type (
 type model struct {
 	dbHandler dbHandler
 	cmdActive bool
-	tasks     []Task
+	tasks     []task
 	lists     []list.Model
-	focused   TaskStatus
+	focused   status
 	form      *huh.Form
 	loadStatus
 	size
@@ -71,7 +71,7 @@ func init() {
 	log = logger.GetLogger()
 }
 
-func NewInputForm() *huh.Form {
+func newInputForm() *huh.Form {
 	log.Debug("setting fresh input form")
 	return huh.NewForm(
 		huh.NewGroup(
@@ -84,11 +84,11 @@ func NewInputForm() *huh.Form {
 				Placeholder("Description").
 				Key("TaskDesc"),
 		),
-	).WithShowHelp(false).WithTheme(FormTheme()).WithHeight(1)
+	).WithShowHelp(false).WithTheme(formTheme()).WithHeight(1)
 }
 
 func NewModel() *model {
-	dbHandler, err := NewDBHandler()
+	dbHandler, err := newDBHandler()
 	if err != nil {
 		log.Error("OpenDB", "error", err)
 		fmt.Println(err)
@@ -99,8 +99,8 @@ func NewModel() *model {
 	return &model{
 		dbHandler: *dbHandler,
 		mode:      listMode,
-		focused:   ToDo,
-		form:      NewInputForm(),
+		focused:   todo,
+		form:      newInputForm(),
 		style: style{
 			mainColor:      white,
 			secondaryColor: blue,
@@ -140,9 +140,9 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				log.Debug("user quit")
 				return m, tea.Quit
 			case "left":
-				return m, m.ChangeFocusColumn(m.focused.Prev())
+				return m, m.changeFocusColumn(m.focused.prev())
 			case "right":
-				return m, m.ChangeFocusColumn(m.focused.Next())
+				return m, m.changeFocusColumn(m.focused.next())
 			case "d":
 				log.Debug("user deleted task")
 				return m, m.deleteTask
@@ -153,9 +153,9 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case moveMode:
 			switch msg.String() {
 			case "left":
-				return m, m.moveTask(m.focused.Prev())
+				return m, m.moveTask(m.focused.prev())
 			case "right":
-				return m, m.moveTask(m.focused.Next())
+				return m, m.moveTask(m.focused.next())
 			case "esc":
 				return m, m.setMode(listMode)
 			}
@@ -169,7 +169,7 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.WindowSizeMsg:
 		m.setDimensions(msg)
 		m.sizeObtained = true
-		m.listStyle = m.ListStyle()
+		m.listStyle = m.customListStyle()
 		for i := range m.lists {
 			m.lists[i].Styles = m.listStyle
 		}
@@ -182,10 +182,10 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 		}
 
-	case TaskMovedMsg:
-		log.Debug("task moved", "status", msg.Status)
+	case taskMovedMsg:
+		log.Debug("task moved", "status", msg.status)
 		return m, tea.Batch(
-			m.ChangeFocusColumn(msg.Status),
+			m.changeFocusColumn(msg.status),
 			m.refreshTasks,
 		)
 
@@ -204,7 +204,7 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "ListTasksSet":
 			// If no task is selected, select the last task in the focused list
 			// Used for when the last task in the list is deleted
-			if m.selectedTask() == (Task{}) && len(m.lists[m.focused].Items()) > 0 {
+			if m.selectedTask() == (task{}) && len(m.lists[m.focused].Items()) > 0 {
 				m.lists[m.focused].Select(len(m.lists[m.focused].Items()) - 1)
 			}
 
@@ -288,7 +288,7 @@ func (m *model) View() string {
 }
 
 func (m *model) resetForm() tea.Msg {
-	m.form = NewInputForm()
+	m.form = newInputForm()
 	log.Debug("form set")
 	return tea.Msg("FormInit")
 }
@@ -300,7 +300,7 @@ func (m *model) setMode(mode mode) tea.Cmd {
 		m.mode = mode
 		log.Debug("mode set", "mode", m.mode)
 		for i := range m.lists {
-			m.lists[i].Styles = m.ListStyle()
+			m.lists[i].Styles = m.customListStyle()
 			m.setDelegate()
 		}
 		return tea.Msg("ModeSet")
