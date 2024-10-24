@@ -14,38 +14,38 @@ import (
 )
 
 const (
-// minWidth  int = 89
-// minHeight int = 27
-)
-
-var log *slog.Logger
-
-type model struct {
-	dbHandler    dbHandler
-	cmdActive    bool
-	fullyLoaded  bool
-	tasksLoaded  bool
-	listInit     bool
-	sizeObtained bool
-	mode
-	size
-	tasks     []Task
-	lists     []list.Model
-	focused   TaskStatus
-	inputForm *huh.Form
-	listStyle list.Styles
-	style
-}
-
-type mode int
-
-const (
 	listMode mode = iota
 	moveMode
 	inputMode
 )
 
+var log *slog.Logger
+
+type (
+	errMsg struct{ err error }
+)
+
+type model struct {
+	dbHandler dbHandler
+	cmdActive bool
+	tasks     []Task
+	lists     []list.Model
+	focused   TaskStatus
+	form      *huh.Form
+	loadStatus
+	size
+	mode
+	style
+}
+
+type loadStatus struct {
+	fullyLoaded bool
+	tasksLoaded bool
+	listInit    bool
+}
+
 type size struct {
+	sizeObtained     bool
 	fullWindowWidth  int
 	fullWindowHeight int
 	xFrameSize       int
@@ -56,15 +56,14 @@ type size struct {
 	colHeight        int
 }
 
+type mode int
+
 type style struct {
 	mainColor      lipgloss.Color
 	secondaryColor lipgloss.Color
 	border         lipgloss.Border
+	listStyle      list.Styles
 }
-
-type (
-	errMsg struct{ err error }
-)
 
 func (e errMsg) Error() string { return e.err.Error() }
 
@@ -101,7 +100,7 @@ func NewModel() *model {
 		dbHandler: *dbHandler,
 		mode:      listMode,
 		focused:   ToDo,
-		inputForm: NewInputForm(),
+		form:      NewInputForm(),
 		style: style{
 			mainColor:      white,
 			secondaryColor: blue,
@@ -115,7 +114,7 @@ func (m *model) Init() tea.Cmd {
 	return tea.Batch(
 		m.refreshTasks,
 		m.initLists,
-		m.inputForm.Init(),
+		m.form.Init(),
 	)
 }
 
@@ -217,7 +216,7 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "FormInit":
 			return m, tea.Batch(
 				m.setMode(inputMode),
-				m.inputForm.Init(),
+				m.form.Init(),
 			)
 		}
 	}
@@ -250,16 +249,16 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.lists[m.focused], cmd = m.lists[m.focused].Update(msg)
 
 	case inputMode:
-		if m.inputForm != nil {
+		if m.form != nil {
 			// log.Debug("huh form state", "state", m.inputForm.State)
-			switch m.inputForm.State {
+			switch m.form.State {
 
 			case huh.StateNormal:
 				var form tea.Model
 				// log.Debug("updating input form")
-				form, cmd = m.inputForm.Update(msg)
+				form, cmd = m.form.Update(msg)
 				if f, ok := form.(*huh.Form); ok {
-					m.inputForm = f
+					m.form = f
 				}
 
 			case huh.StateCompleted:
@@ -289,7 +288,7 @@ func (m *model) View() string {
 }
 
 func (m *model) resetForm() tea.Msg {
-	m.inputForm = NewInputForm()
+	m.form = NewInputForm()
 	log.Debug("form set")
 	return tea.Msg("FormInit")
 }
@@ -313,9 +312,8 @@ func (m *model) setFullyLoaded() tea.Msg {
 }
 
 func (m *model) setDimensions(msg tea.WindowSizeMsg) tea.Msg {
-	log.Debug("got window size message")
 	m.xFrameSize, m.yFrameSize = dummyBorder.GetFrameSize()
-	log.Debug("calculated dummyborder frame size", "horizontal", m.xFrameSize, "vertical", m.yFrameSize)
+
 	m.fullWindowWidth = msg.Width
 	m.fullWindowHeight = msg.Height
 

@@ -150,8 +150,8 @@ func (m *model) refreshTasks() tea.Msg {
 func (m *model) insertTask() tea.Msg {
 	log.Debug("createTask called")
 	task := Task{
-		TaskTitle:  m.inputForm.GetString("TaskTitle"),
-		TaskDesc:   m.inputForm.GetString("TaskDesc"),
+		TaskTitle:  m.form.GetString("TaskTitle"),
+		TaskDesc:   m.form.GetString("TaskDesc"),
 		TaskStatus: m.focused,
 	}
 
