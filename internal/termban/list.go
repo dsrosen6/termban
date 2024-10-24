@@ -128,7 +128,26 @@ func (m *model) setDelegate() tea.Msg {
 	return nil
 }
 
-func (m *model) createTask() tea.Msg {
+func (m *model) refreshTasks() tea.Msg {
+	tasks, err := m.dbHandler.DBGetTasks()
+	if err != nil {
+		return errMsg{err}
+	}
+
+	m.tasks = tasks
+	if m.fullyLoaded {
+		return tea.Msg("TasksRefreshed")
+	}
+
+	if !m.tasksLoaded {
+		m.tasksLoaded = true
+	}
+
+	log.Debug("tasks successfully loaded")
+	return tea.Msg("TasksLoaded")
+}
+
+func (m *model) insertTask() tea.Msg {
 	log.Debug("createTask called")
 	task := Task{
 		TaskTitle:  m.inputForm.GetString("TaskTitle"),
@@ -136,7 +155,7 @@ func (m *model) createTask() tea.Msg {
 		TaskStatus: m.focused,
 	}
 
-	if err := m.DBInsertTask(task); err != nil {
+	if err := m.dbHandler.DBInsertTask(task); err != nil {
 		return errMsg{err}
 	}
 
@@ -147,7 +166,7 @@ func (m *model) moveTask(newStatus TaskStatus) tea.Cmd {
 	return func() tea.Msg {
 		st := m.selectedTask()
 		st.TaskStatus = newStatus
-		if err := m.DBUpdateTask(st); err != nil {
+		if err := m.dbHandler.DBUpdateTask(st); err != nil {
 			return errMsg{err}
 		}
 
@@ -156,7 +175,7 @@ func (m *model) moveTask(newStatus TaskStatus) tea.Cmd {
 }
 
 func (m *model) deleteTask() tea.Msg {
-	if err := m.DBDeleteTask(m.selectedTask().TaskID); err != nil {
+	if err := m.dbHandler.DBDeleteTask(m.selectedTask().TaskID); err != nil {
 		return errMsg{err}
 	}
 

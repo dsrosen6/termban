@@ -1,7 +1,6 @@
 package termban
 
 import (
-	"database/sql"
 	"fmt"
 	"log/slog"
 	"os"
@@ -22,7 +21,7 @@ const (
 var log *slog.Logger
 
 type model struct {
-	db           *sql.DB
+	dbHandler    dbHandler
 	cmdActive    bool
 	fullyLoaded  bool
 	tasksLoaded  bool
@@ -90,7 +89,7 @@ func NewInputForm() *huh.Form {
 }
 
 func NewModel() *model {
-	db, err := OpenDB()
+	dbHandler, err := NewDBHandler()
 	if err != nil {
 		log.Error("OpenDB", "error", err)
 		fmt.Println(err)
@@ -99,7 +98,7 @@ func NewModel() *model {
 
 	log.Info("model created")
 	return &model{
-		db:        db,
+		dbHandler: *dbHandler,
 		mode:      listMode,
 		focused:   ToDo,
 		inputForm: NewInputForm(),
@@ -114,7 +113,7 @@ func NewModel() *model {
 func (m *model) Init() tea.Cmd {
 	log.Debug("initializing model")
 	return tea.Batch(
-		m.DBGetTasks,
+		m.refreshTasks,
 		m.initLists,
 		m.inputForm.Init(),
 	)
@@ -188,7 +187,7 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		log.Debug("task moved", "status", msg.Status)
 		return m, tea.Batch(
 			m.ChangeFocusColumn(msg.Status),
-			m.DBGetTasks,
+			m.refreshTasks,
 		)
 
 	case tea.Msg:
@@ -197,7 +196,7 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.fullyLoaded = true
 		case "TasksRefreshNeeded":
 			log.Debug("task refresh needed")
-			return m, m.DBGetTasks
+			return m, m.refreshTasks
 		case "TasksRefreshed":
 			// If tasks are loaded, update the lists
 			log.Debug("tasks refreshed")
@@ -267,7 +266,7 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				if !m.cmdActive {
 					log.Debug("setting cmdActive to true")
 					m.cmdActive = true
-					cmd = m.createTask
+					cmd = m.insertTask
 				}
 			}
 

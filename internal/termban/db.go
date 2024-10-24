@@ -5,12 +5,19 @@ import (
 	"fmt"
 	"os"
 	"os/user"
-
-	tea "github.com/charmbracelet/bubbletea"
 )
 
-type db struct {
+type dbHandler struct {
 	*sql.DB
+}
+
+func NewDBHandler() (*dbHandler, error) {
+	db, err := OpenDB()
+	if err != nil {
+		return nil, fmt.Errorf("OpenDB: %w", err)
+	}
+
+	return &dbHandler{db}, err
 }
 
 func OpenDB() (*sql.DB, error) {
@@ -47,7 +54,7 @@ func OpenDB() (*sql.DB, error) {
 	return db, nil
 }
 
-func (db *db) DBInsertTask(task Task) error {
+func (db *dbHandler) DBInsertTask(task Task) error {
 	log.Debug("new task received",
 		"title", task.TaskTitle,
 		"desc", task.TaskDesc,
@@ -70,11 +77,11 @@ func (db *db) DBInsertTask(task Task) error {
 	return nil
 }
 
-func (db *db) DBGetTasks() tea.Msg {
+func (db *dbHandler) DBGetTasks() ([]Task, error) {
 	log.Debug("getting tasks from db")
 	rows, err := db.Query("SELECT * FROM tasks")
 	if err != nil {
-		return errMsg{err}
+		return nil, fmt.Errorf("db.Query: %w", err)
 	}
 	defer rows.Close()
 
@@ -83,25 +90,15 @@ func (db *db) DBGetTasks() tea.Msg {
 		var task Task
 		err = rows.Scan(&task.TaskID, &task.TaskTitle, &task.TaskDesc, &task.TaskStatus)
 		if err != nil {
-			return errMsg{err}
+			return nil, fmt.Errorf("rows.Scan: %w", err)
 		}
 		tasks = append(tasks, task)
 	}
 
-	m.tasks = tasks
-	if m.fullyLoaded {
-		return tea.Msg("TasksRefreshed")
-	}
-
-	if !m.tasksLoaded {
-		m.tasksLoaded = true
-	}
-
-	log.Debug("tasks successfully loaded")
-	return tea.Msg("TasksLoaded")
+	return tasks, nil
 }
 
-func (db *db) DBUpdateTask(task Task) error {
+func (db *dbHandler) DBUpdateTask(task Task) error {
 	stmt, err := db.Prepare("UPDATE tasks SET title=?, description=?, status=? WHERE id=?")
 	if err != nil {
 		return fmt.Errorf("could not prepare statement: %w", err)
@@ -115,7 +112,7 @@ func (db *db) DBUpdateTask(task Task) error {
 	return nil
 }
 
-func (db *db) DBDeleteTask(id int) error {
+func (db *dbHandler) DBDeleteTask(id int) error {
 	stmt, err := db.Prepare("DELETE FROM tasks WHERE id=?")
 	if err != nil {
 		return fmt.Errorf("could not prepare statement: %w", err)
