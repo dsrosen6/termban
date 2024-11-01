@@ -15,12 +15,12 @@ var (
 	dummyBorder = lipgloss.NewStyle().Border(lipgloss.NormalBorder())
 )
 
-func (m *model) inputWidth() int {
+func (m *Model) inputWidth() int {
 	h, _ := m.outerFrame().GetFrameSize()
 	return lipgloss.Width(m.listsView()) - h
 }
 
-func (m *model) inputHeight() int {
+func (m *Model) inputHeight() int {
 	ws := m.outerFrame().GetHeight()
 	_, hf := m.outerFrame().GetFrameSize()
 	_, cf := m.regColumnView().GetFrameSize()
@@ -29,13 +29,13 @@ func (m *model) inputHeight() int {
 	return ih
 }
 
-func (m *model) outerFrame() lipgloss.Style {
+func (m *Model) outerFrame() lipgloss.Style {
 	return lipgloss.NewStyle().
 		Width(m.availWidth).
 		Height(m.availHeight)
 }
 
-func (m *model) customListStyle() list.Styles {
+func (m *Model) customListStyle() list.Styles {
 	var s list.Styles
 	s.TitleBar = lipgloss.NewStyle().
 		Padding(0).
@@ -54,7 +54,7 @@ func (m *model) customListStyle() list.Styles {
 	return s
 }
 
-func (m *model) selectedItemStyle() lipgloss.Style {
+func (m *Model) selectedItemStyle() lipgloss.Style {
 	return lipgloss.NewStyle().
 		Border(m.border, false, false, false, true).
 		BorderForeground(m.getModeColor()).
@@ -62,18 +62,18 @@ func (m *model) selectedItemStyle() lipgloss.Style {
 		Padding(0, 0, 0, 1)
 }
 
-func (m *model) unselectedItemStyle() lipgloss.Style {
+func (m *Model) unselectedItemStyle() lipgloss.Style {
 	return lipgloss.NewStyle().
 		Foreground(m.mainColor).
 		Faint(true).
 		Padding(0, 0, 0, 2)
 }
 
-func (m *model) inputStyle() lipgloss.Style {
+func (m *Model) inputStyle() lipgloss.Style {
 	return lipgloss.NewStyle().Width(m.inputWidth()).Height(m.inputHeight()).Padding(1, 1, 0, 1)
 }
 
-func (m *model) templateColumnView() lipgloss.Style {
+func (m *Model) templateColumnView() lipgloss.Style {
 	return lipgloss.NewStyle().
 		Border(lipgloss.HiddenBorder()).
 		Width(m.colWidth).
@@ -81,24 +81,24 @@ func (m *model) templateColumnView() lipgloss.Style {
 		Padding(0, 0)
 }
 
-func (m *model) focusColumnView() lipgloss.Style {
+func (m *Model) focusColumnView() lipgloss.Style {
 	return m.templateColumnView().
 		Border(m.border).
 		BorderForeground(m.mainColor)
 }
 
-func (m *model) inactiveFocusColumnView() lipgloss.Style {
+func (m *Model) inactiveFocusColumnView() lipgloss.Style {
 	return m.templateColumnView().
 		Border(m.border).
 		BorderForeground(grey).
 		Faint(true)
 }
 
-func (m *model) regColumnView() lipgloss.Style {
+func (m *Model) regColumnView() lipgloss.Style {
 	return m.templateColumnView().Faint(true)
 }
 
-func (m *model) getModeColor() lipgloss.Color {
+func (m *Model) getModeColor() lipgloss.Color {
 	if m.mode == moveMode {
 		return m.secondaryColor
 	}

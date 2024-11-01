@@ -25,7 +25,7 @@ type (
 	errMsg struct{ err error }
 )
 
-type model struct {
+type Model struct {
 	dbHandler dbHandler
 	cmdActive bool
 	tasks     []task
@@ -87,7 +87,7 @@ func newInputForm() *huh.Form {
 	).WithShowHelp(false).WithTheme(formTheme()).WithHeight(1)
 }
 
-func NewModel() *model {
+func NewModel() *Model {
 	dbHandler, err := newDBHandler()
 	if err != nil {
 		log.Error("OpenDB", "error", err)
@@ -96,7 +96,7 @@ func NewModel() *model {
 	}
 
 	log.Info("model created")
-	return &model{
+	return &Model{
 		dbHandler: *dbHandler,
 		mode:      listMode,
 		focused:   todo,
@@ -109,7 +109,7 @@ func NewModel() *model {
 	}
 }
 
-func (m *model) Init() tea.Cmd {
+func (m *Model) Init() tea.Cmd {
 	log.Debug("initializing model")
 	return tea.Batch(
 		m.refreshTasks,
@@ -118,7 +118,7 @@ func (m *model) Init() tea.Cmd {
 	)
 }
 
-func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		// Shared keys
@@ -129,6 +129,8 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				return m, m.setMode(moveMode)
 			case moveMode:
 				return m, m.setMode(listMode)
+			default:
+				panic("unhandled default case")
 			}
 		}
 
@@ -267,6 +269,8 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					m.cmdActive = true
 					cmd = m.insertTask
 				}
+			default:
+				panic("unhandled default case")
 			}
 
 		} else {
@@ -279,7 +283,7 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 }
 
-func (m *model) View() string {
+func (m *Model) View() string {
 	if !m.fullyLoaded {
 		return "Loading..."
 	}
@@ -287,14 +291,14 @@ func (m *model) View() string {
 	return m.fullView()
 }
 
-func (m *model) resetForm() tea.Msg {
+func (m *Model) resetForm() tea.Msg {
 	m.form = newInputForm()
 	log.Debug("form set")
 	return tea.Msg("FormInit")
 }
 
 // setMode sets the mode!
-func (m *model) setMode(mode mode) tea.Cmd {
+func (m *Model) setMode(mode mode) tea.Cmd {
 	// mode
 	return func() tea.Msg {
 		m.mode = mode
@@ -307,11 +311,11 @@ func (m *model) setMode(mode mode) tea.Cmd {
 	}
 }
 
-func (m *model) setFullyLoaded() tea.Msg {
+func (m *Model) setFullyLoaded() tea.Msg {
 	return tea.Msg("FullyLoaded")
 }
 
-func (m *model) setDimensions(msg tea.WindowSizeMsg) tea.Msg {
+func (m *Model) setDimensions(msg tea.WindowSizeMsg) tea.Msg {
 	m.xFrameSize, m.yFrameSize = dummyBorder.GetFrameSize()
 
 	m.fullWindowWidth = msg.Width

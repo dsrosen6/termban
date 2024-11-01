@@ -15,9 +15,6 @@ const (
 
 type taskMovedMsg struct{ status status }
 
-// These are all prepended with "task" so as to not conflict with the other methods right below it.
-// Sure, I didn't need to do this with ID, Description, or Status, but I have clinical OCD.
-// I would never, ever stop thinking about it.
 type task struct {
 	id    int
 	title string
@@ -47,7 +44,7 @@ func (s status) prev() status {
 	}
 }
 
-func (m *model) changeFocusColumn(newStatus status) tea.Cmd {
+func (m *Model) changeFocusColumn(newStatus status) tea.Cmd {
 	return func() tea.Msg {
 		m.focused = newStatus
 		m.setDelegate()
@@ -55,7 +52,7 @@ func (m *model) changeFocusColumn(newStatus status) tea.Cmd {
 	}
 }
 
-func (m *model) focusedDelegate() list.ItemDelegate {
+func (m *Model) focusedDelegate() list.ItemDelegate {
 	d := list.NewDefaultDelegate()
 	d.ShowDescription = false
 
@@ -65,7 +62,7 @@ func (m *model) focusedDelegate() list.ItemDelegate {
 	return d
 }
 
-func (m *model) normalDelegate() list.ItemDelegate {
+func (m *Model) normalDelegate() list.ItemDelegate {
 	d := list.NewDefaultDelegate()
 	d.ShowDescription = false
 
@@ -75,7 +72,7 @@ func (m *model) normalDelegate() list.ItemDelegate {
 	return d
 }
 
-func (m *model) initLists() tea.Msg {
+func (m *Model) initLists() tea.Msg {
 	log.Debug("initializing lists")
 	defaultList := list.New([]list.Item{}, m.normalDelegate(), m.colWidth, m.colHeight)
 	defaultList.SetShowHelp(false)
@@ -98,7 +95,7 @@ func (m *model) initLists() tea.Msg {
 	return tea.Msg("ListInit")
 }
 
-func (m *model) setListTasks() tea.Msg {
+func (m *Model) setListTasks() tea.Msg {
 	items := map[status][]list.Item{
 		todo:  {},
 		doing: {},
@@ -117,7 +114,7 @@ func (m *model) setListTasks() tea.Msg {
 	return tea.Msg("ListTasksSet")
 }
 
-func (m *model) setDelegate() tea.Msg {
+func (m *Model) setDelegate() tea.Msg {
 	for i := range m.lists {
 		if i == int(m.focused) {
 			m.lists[i].SetDelegate(m.focusedDelegate())
@@ -128,7 +125,7 @@ func (m *model) setDelegate() tea.Msg {
 	return nil
 }
 
-func (m *model) refreshTasks() tea.Msg {
+func (m *Model) refreshTasks() tea.Msg {
 	tasks, err := m.dbHandler.getTasks()
 	if err != nil {
 		return errMsg{err}
@@ -147,7 +144,7 @@ func (m *model) refreshTasks() tea.Msg {
 	return tea.Msg("TasksLoaded")
 }
 
-func (m *model) insertTask() tea.Msg {
+func (m *Model) insertTask() tea.Msg {
 	log.Debug("createTask called")
 	task := task{
 		title:  m.form.GetString("TaskTitle"),
@@ -162,7 +159,7 @@ func (m *model) insertTask() tea.Msg {
 	return tea.Msg("TasksRefreshNeeded")
 }
 
-func (m *model) moveTask(newStatus status) tea.Cmd {
+func (m *Model) moveTask(newStatus status) tea.Cmd {
 	return func() tea.Msg {
 		st := m.selectedTask()
 		st.status = newStatus
@@ -174,7 +171,7 @@ func (m *model) moveTask(newStatus status) tea.Cmd {
 	}
 }
 
-func (m *model) deleteTask() tea.Msg {
+func (m *Model) deleteTask() tea.Msg {
 	if err := m.dbHandler.deleteTask(m.selectedTask().id); err != nil {
 		return errMsg{err}
 	}
@@ -182,7 +179,7 @@ func (m *model) deleteTask() tea.Msg {
 	return tea.Msg("TasksRefreshNeeded")
 }
 
-func (m model) selectedTask() task {
+func (m *Model) selectedTask() task {
 	st := m.lists[m.focused].SelectedItem()
 	if st == nil {
 		return task{}

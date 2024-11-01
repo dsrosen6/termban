@@ -2,11 +2,11 @@ package termban
 
 import "github.com/charmbracelet/lipgloss"
 
-func (m *model) fullView() string {
+func (m *Model) fullView() string {
 	return m.outerFrame().Render(lipgloss.JoinVertical(lipgloss.Center, m.listsView(), m.inputView()))
 }
 
-func (m *model) inputView() string {
+func (m *Model) inputView() string {
 	if m.mode == inputMode {
 		// log.Debug("putting input form in view")
 		return m.inputStyle().Render(m.form.View())
@@ -16,7 +16,7 @@ func (m *model) inputView() string {
 	return m.inputStyle().Render("")
 }
 
-func (m *model) listsView() string {
+func (m *Model) listsView() string {
 	focusStyle := m.getFocusColumnStyle()
 
 	var views []string
@@ -32,7 +32,7 @@ func (m *model) listsView() string {
 	return lv
 }
 
-func (m *model) getFocusColumnStyle() lipgloss.Style {
+func (m *Model) getFocusColumnStyle() lipgloss.Style {
 	style := m.focusColumnView()
 
 	if m.mode == inputMode {
