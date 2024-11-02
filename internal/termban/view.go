@@ -12,7 +12,6 @@ func (m *Model) inputView() string {
 		return m.inputStyle().Render(m.form.View())
 	}
 
-	// log.Debug("rendering view without input form")
 	return m.inputStyle().Render("")
 }
 

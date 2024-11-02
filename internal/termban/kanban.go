@@ -252,12 +252,10 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case inputMode:
 		if m.form != nil {
-			// log.Debug("huh form state", "state", m.inputForm.State)
 			switch m.form.State {
 
 			case huh.StateNormal:
 				var form tea.Model
-				// log.Debug("updating input form")
 				form, cmd = m.form.Update(msg)
 				if f, ok := form.(*huh.Form); ok {
 					m.form = f
@@ -278,7 +276,6 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 	}
 
-	// log.Debug("sending cmd", "cmd", cmd)
 	return m, cmd
 
 }

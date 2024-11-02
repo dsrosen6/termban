@@ -32,7 +32,7 @@ func openDB() (*sql.DB, error) {
 		return nil, fmt.Errorf("could not create db folder: %w", err)
 	}
 
-	db, err := sql.Open("sqlite3", fmt.Sprintf("%s/Library/termban/db/tasks.db", h)) // TODO: Permanent location
+	db, err := sql.Open("sqlite3", fmt.Sprintf("%s/Library/termban/db/tasks.db", h))
 	if err != nil {
 		return nil, fmt.Errorf("error opening db: %w", err)
 	}
@@ -47,7 +47,10 @@ func openDB() (*sql.DB, error) {
 	`
 	_, err = db.Exec(sqlStmt)
 	if err != nil {
-		db.Close()
+		err := db.Close()
+		if err != nil {
+			return nil, fmt.Errorf("could not close db: %w", err)
+		}
 		return nil, fmt.Errorf("could not exec db: %w", err)
 	}
 
@@ -83,9 +86,14 @@ func (db *dbHandler) getTasks() ([]task, error) {
 	if err != nil {
 		return nil, fmt.Errorf("db.Query: %w", err)
 	}
-	defer rows.Close()
+	defer func(rows *sql.Rows) {
+		err := rows.Close()
+		if err != nil {
+			log.Error("could not close rows", "error", err)
+		}
+	}(rows)
 
-	tasks := []task{}
+	var tasks []task
 	for rows.Next() {
 		var task task
 		err = rows.Scan(&task.id, &task.title, &task.desc, &task.status)
