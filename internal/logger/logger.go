@@ -12,51 +12,44 @@ const (
 	logFileName string = "termban.log"
 )
 
-var log *slog.Logger
-
-func init() {
+func GetLogger(level slog.Level) (*slog.Logger, error) {
 	usr, err := getCurrentUser()
 	if err != nil {
-		fmt.Println(err)
-		os.Exit(1)
+		return nil, fmt.Errorf("getCurrentUser: %w", err)
 	}
 
-	ld, err := makeLogDir(usr)
+	d, err := makeLogDir(usr)
 	if err != nil {
-		fmt.Println(err)
+		return nil, fmt.Errorf("makeLogDir: %w", err)
 	}
 
-	f := ld + logFileName
+	f := d + logFileName
 	logFile, err := os.OpenFile(f, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
 	if err != nil {
-		panic(fmt.Sprintf("error opening log file: %v", err))
+		return nil, fmt.Errorf("os.OpenFile: %w", err)
 	}
 
-	log = slog.New(slog.NewTextHandler(logFile, &slog.HandlerOptions{
-		Level: slog.LevelDebug,
-	}))
-}
+	log := slog.New(slog.NewTextHandler(logFile, &slog.HandlerOptions{Level: level}))
 
-func GetLogger() *slog.Logger {
-	return log
+	return log, nil
 }
 
 // Create termban log directory if it doesn't exist - also return path as string for later use
 func makeLogDir(usr *user.User) (string, error) {
 	h := usr.HomeDir
-	ld := h + logSubDir
-	if err := os.MkdirAll(ld, 0755); err != nil {
-		return "", fmt.Errorf("could not create termban log folder: %w", err)
+	d := h + logSubDir
+	if err := os.MkdirAll(d, 0755); err != nil {
+		return "", fmt.Errorf("os.MkdirAll: %w", err)
 	}
 
-	return ld, nil
+	return d, nil
 }
 
 // Get current user in order to construct log folder path
 func getCurrentUser() (*user.User, error) {
 	usr, err := user.Current()
 	if err != nil {
-		return nil, fmt.Errorf("could not get current logged in user: %w", err)
+		return nil, fmt.Errorf("user.Current: %w", err)
 	}
 
 	return usr, nil

@@ -73,7 +73,7 @@ func (m *Model) normalDelegate() list.ItemDelegate {
 }
 
 func (m *Model) initLists() tea.Msg {
-	log.Debug("initializing lists")
+	m.log.Debug("initializing lists")
 	defaultList := list.New([]list.Item{}, m.normalDelegate(), m.colWidth, m.colHeight)
 	defaultList.SetShowHelp(false)
 	defaultList.Styles = m.customListStyle()
@@ -89,7 +89,7 @@ func (m *Model) initLists() tea.Msg {
 		m.lists[i].Title = title
 	}
 
-	log.Debug("lists successfully initialized")
+	m.log.Debug("lists successfully initialized")
 
 	m.listInit = true
 	return tea.Msg("ListInit")
@@ -140,12 +140,12 @@ func (m *Model) refreshTasks() tea.Msg {
 		m.tasksLoaded = true
 	}
 
-	log.Debug("tasks successfully loaded")
+	m.log.Debug("tasks successfully loaded")
 	return tea.Msg("TasksLoaded")
 }
 
 func (m *Model) insertTask() tea.Msg {
-	log.Debug("createTask called")
+	m.log.Debug("createTask called")
 	task := task{
 		title:  m.form.GetString("TaskTitle"),
 		desc:   m.form.GetString("TaskDesc"),

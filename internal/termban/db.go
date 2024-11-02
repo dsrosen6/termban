@@ -3,21 +3,23 @@ package termban
 import (
 	"database/sql"
 	"fmt"
+	"log/slog"
 	"os"
 	"os/user"
 )
 
 type dbHandler struct {
+	log *slog.Logger
 	*sql.DB
 }
 
-func newDBHandler() (*dbHandler, error) {
+func newDBHandler(log *slog.Logger) (*dbHandler, error) {
 	db, err := openDB()
 	if err != nil {
 		return nil, fmt.Errorf("OpenDB: %w", err)
 	}
 
-	return &dbHandler{db}, err
+	return &dbHandler{log, db}, err
 }
 
 func openDB() (*sql.DB, error) {
@@ -58,7 +60,7 @@ func openDB() (*sql.DB, error) {
 }
 
 func (db *dbHandler) insertTask(task task) error {
-	log.Debug("new task received",
+	db.log.Debug("new task received",
 		"title", task.title,
 		"desc", task.desc,
 		"status", task.status)
@@ -72,7 +74,7 @@ func (db *dbHandler) insertTask(task task) error {
 		return fmt.Errorf("could not exec statement: %w", err)
 	}
 
-	log.Info("task added to db",
+	db.log.Debug("task added to db",
 		"title", task.title,
 		"desc", task.desc,
 		"status", task.status)
@@ -81,7 +83,7 @@ func (db *dbHandler) insertTask(task task) error {
 }
 
 func (db *dbHandler) getTasks() ([]task, error) {
-	log.Debug("getting tasks from db")
+	db.log.Debug("getting tasks from db")
 	rows, err := db.Query("SELECT * FROM tasks")
 	if err != nil {
 		return nil, fmt.Errorf("db.Query: %w", err)
@@ -89,7 +91,7 @@ func (db *dbHandler) getTasks() ([]task, error) {
 	defer func(rows *sql.Rows) {
 		err := rows.Close()
 		if err != nil {
-			log.Error("could not close rows", "error", err)
+			db.log.Error("could not close rows", "error", err)
 		}
 	}(rows)
 

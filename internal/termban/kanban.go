@@ -9,7 +9,6 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/huh"
 	"github.com/charmbracelet/lipgloss"
-	"github.com/dsrosen6/termban/internal/logger"
 	_ "github.com/mattn/go-sqlite3"
 )
 
@@ -19,13 +18,12 @@ const (
 	inputMode
 )
 
-var log *slog.Logger
-
 type (
 	errMsg struct{ err error }
 )
 
 type Model struct {
+	log       *slog.Logger
 	dbHandler dbHandler
 	cmdActive bool
 	tasks     []task
@@ -67,12 +65,7 @@ type style struct {
 
 func (e errMsg) Error() string { return e.err.Error() }
 
-func init() {
-	log = logger.GetLogger()
-}
-
 func newInputForm() *huh.Form {
-	log.Debug("setting fresh input form")
 	return huh.NewForm(
 		huh.NewGroup(
 			huh.NewInput().
@@ -87,16 +80,18 @@ func newInputForm() *huh.Form {
 	).WithShowHelp(false).WithTheme(formTheme()).WithHeight(1)
 }
 
-func NewModel() *Model {
-	dbHandler, err := newDBHandler()
+func NewModel(log *slog.Logger) *Model {
+
+	dbHandler, err := newDBHandler(log)
 	if err != nil {
 		log.Error("OpenDB", "error", err)
 		fmt.Println(err)
 		os.Exit(1)
 	}
 
-	log.Info("model created")
+	log.Debug("model created")
 	return &Model{
+		log:       log,
 		dbHandler: *dbHandler,
 		mode:      listMode,
 		focused:   todo,
@@ -110,7 +105,7 @@ func NewModel() *Model {
 }
 
 func (m *Model) Init() tea.Cmd {
-	log.Debug("initializing model")
+	m.log.Debug("initializing model")
 	return tea.Batch(
 		m.refreshTasks,
 		m.initLists,
@@ -139,17 +134,17 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case listMode:
 			switch msg.String() {
 			case "esc":
-				log.Debug("user quit")
+				m.log.Debug("user quit")
 				return m, tea.Quit
 			case "left":
 				return m, m.changeFocusColumn(m.focused.prev())
 			case "right":
 				return m, m.changeFocusColumn(m.focused.next())
 			case "d":
-				log.Debug("user deleted task")
+				m.log.Debug("user deleted task")
 				return m, m.deleteTask
 			case "a":
-				log.Debug("user pressed a to add task")
+				m.log.Debug("user pressed a to add task")
 				return m, m.resetForm
 			}
 		case moveMode:
@@ -176,7 +171,7 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.lists[i].Styles = m.listStyle
 		}
 
-		log.Debug("size obtained", "width", msg.Width, "height", msg.Height, "availWidth", m.availWidth, "availHeight", m.availHeight)
+		m.log.Debug("size obtained", "width", msg.Width, "height", msg.Height, "availWidth", m.availWidth, "availHeight", m.availHeight)
 
 		if m.fullyLoaded {
 			for i := range m.lists {
@@ -185,7 +180,7 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 
 	case taskMovedMsg:
-		log.Debug("task moved", "status", msg.status)
+		m.log.Debug("task moved", "status", msg.status)
 		return m, tea.Batch(
 			m.changeFocusColumn(msg.status),
 			m.refreshTasks,
@@ -196,11 +191,11 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "FullyLoaded":
 			m.fullyLoaded = true
 		case "TasksRefreshNeeded":
-			log.Debug("task refresh needed")
+			m.log.Debug("task refresh needed")
 			return m, m.refreshTasks
 		case "TasksRefreshed":
 			// If tasks are loaded, update the lists
-			log.Debug("tasks refreshed")
+			m.log.Debug("tasks refreshed")
 			m.cmdActive = false
 			return m, m.setListTasks
 		case "ListTasksSet":
@@ -210,7 +205,7 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.lists[m.focused].Select(len(m.lists[m.focused].Items()) - 1)
 			}
 
-			log.Debug("selected task", "task", m.selectedTask())
+			m.log.Debug("selected task", "task", m.selectedTask())
 			if m.mode == inputMode {
 				return m, m.setMode(listMode)
 			}
@@ -229,13 +224,13 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.lists[i].SetSize(m.colWidth, m.colHeight)
 			}
 
-			log.Info("model fully loaded")
+			m.log.Debug("model fully loaded")
 			return m, tea.Batch(
 				m.setFullyLoaded,
 				m.setListTasks,
 			)
 		}
-		log.Debug("init tasks not done",
+		m.log.Debug("init tasks not done",
 			"tasksLoaded", m.tasksLoaded,
 			"listInit", m.listInit,
 			"sizeObtained", m.sizeObtained)
@@ -247,32 +242,32 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	switch m.mode {
 	case listMode, moveMode:
-		log.Debug("updating focused list", "listStatus", m.focused)
+		m.log.Debug("updating focused list", "listStatus", m.focused)
 		m.lists[m.focused], cmd = m.lists[m.focused].Update(msg)
 
 	case inputMode:
 		if m.form != nil {
-			switch m.form.State {
 
-			case huh.StateNormal:
+			if m.form.State == huh.StateNormal {
 				var form tea.Model
 				form, cmd = m.form.Update(msg)
 				if f, ok := form.(*huh.Form); ok {
 					m.form = f
 				}
+			}
 
-			case huh.StateCompleted:
+			if m.form.State == huh.StateCompleted {
 				if !m.cmdActive {
-					log.Debug("setting cmdActive to true")
+					m.log.Debug("setting cmdActive to true")
 					m.cmdActive = true
 					cmd = m.insertTask
 				}
-			default:
-				panic("unhandled default case")
 			}
 
 		} else {
-			log.Debug("inputForm is nil")
+
+			m.log.Debug("inputForm is nil")
+
 		}
 	}
 
@@ -290,7 +285,7 @@ func (m *Model) View() string {
 
 func (m *Model) resetForm() tea.Msg {
 	m.form = newInputForm()
-	log.Debug("form set")
+	m.log.Debug("form set")
 	return tea.Msg("FormInit")
 }
 
@@ -299,7 +294,7 @@ func (m *Model) setMode(mode mode) tea.Cmd {
 	// mode
 	return func() tea.Msg {
 		m.mode = mode
-		log.Debug("mode set", "mode", m.mode)
+		m.log.Debug("mode set", "mode", m.mode)
 		for i := range m.lists {
 			m.lists[i].Styles = m.customListStyle()
 			m.setDelegate()
