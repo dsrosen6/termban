@@ -4,8 +4,6 @@ import (
 	"database/sql"
 	"fmt"
 	"log/slog"
-	"os"
-	"os/user"
 )
 
 type dbHandler struct {
@@ -13,8 +11,8 @@ type dbHandler struct {
 	*sql.DB
 }
 
-func newDBHandler(log *slog.Logger) (*dbHandler, error) {
-	db, err := openDB()
+func newDBHandler(log *slog.Logger, dbPath string) (*dbHandler, error) {
+	db, err := openDB(dbPath)
 	if err != nil {
 		return nil, fmt.Errorf("OpenDB: %w", err)
 	}
@@ -22,19 +20,8 @@ func newDBHandler(log *slog.Logger) (*dbHandler, error) {
 	return &dbHandler{log, db}, err
 }
 
-func openDB() (*sql.DB, error) {
-	usr, err := user.Current()
-	if err != nil {
-		return nil, fmt.Errorf("could not get current user: %w", err)
-	}
-	h := usr.HomeDir
-
-	dbFolder := fmt.Sprintf("%s/Library/termban/db", h)
-	if err := os.MkdirAll(dbFolder, 0755); err != nil {
-		return nil, fmt.Errorf("could not create db folder: %w", err)
-	}
-
-	db, err := sql.Open("sqlite3", fmt.Sprintf("%s/Library/termban/db/tasks.db", h))
+func openDB(dbPath string) (*sql.DB, error) {
+	db, err := sql.Open("sqlite3", fmt.Sprintf("%s/tasks.db", dbPath))
 	if err != nil {
 		return nil, fmt.Errorf("error opening db: %w", err)
 	}

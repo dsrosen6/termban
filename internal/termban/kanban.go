@@ -86,9 +86,8 @@ func newInputForm() *huh.Form {
 	).WithShowHelp(false).WithTheme(formTheme()).WithHeight(1)
 }
 
-func NewModel(log *slog.Logger) *Model {
-	cfg := config.LoadConfig()
-	dbHandler, err := newDBHandler(log)
+func NewModel(log *slog.Logger, cfg *config.Config) *Model {
+	dbHandler, err := newDBHandler(log, cfg.DBLoc)
 	if err != nil {
 		log.Error("OpenDB", "error", err)
 		fmt.Println(err)
