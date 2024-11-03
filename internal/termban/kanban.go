@@ -2,6 +2,7 @@ package termban
 
 import (
 	"fmt"
+	"github.com/dsrosen6/termban/internal/config"
 	"log/slog"
 	"os"
 
@@ -28,12 +29,17 @@ type Model struct {
 	cmdActive bool
 	tasks     []task
 	lists     []list.Model
-	focused   status
-	form      *huh.Form
+	columnNames
+	focused status
+	form    *huh.Form
 	loadStatus
 	size
 	mode
 	style
+}
+
+type columnNames struct {
+	Column1Name, Column2Name, Column3Name string
 }
 
 type loadStatus struct {
@@ -81,7 +87,7 @@ func newInputForm() *huh.Form {
 }
 
 func NewModel(log *slog.Logger) *Model {
-
+	cfg := config.LoadConfig()
 	dbHandler, err := newDBHandler(log)
 	if err != nil {
 		log.Error("OpenDB", "error", err)
@@ -94,12 +100,17 @@ func NewModel(log *slog.Logger) *Model {
 		log:       log,
 		dbHandler: *dbHandler,
 		mode:      listMode,
-		focused:   todo,
-		form:      newInputForm(),
+		columnNames: columnNames{
+			Column1Name: cfg.Column1Name(),
+			Column2Name: cfg.Column2Name(),
+			Column3Name: cfg.Column3Name(),
+		},
+		focused: col1,
+		form:    newInputForm(),
 		style: style{
-			mainColor:      white,
-			secondaryColor: blue,
-			border:         lipgloss.RoundedBorder(),
+			mainColor:      cfg.MainColor(),
+			secondaryColor: cfg.SecondaryColor(),
+			border:         cfg.Border(),
 		},
 	}
 }

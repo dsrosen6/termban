@@ -8,9 +8,9 @@ import (
 type status int
 
 const (
-	todo status = iota
-	doing
-	done
+	col1 status = iota
+	col2
+	col3
 )
 
 type taskMovedMsg struct{ status status }
@@ -29,16 +29,16 @@ func (t task) Description() string { return t.desc }
 func (t task) Status() status      { return t.status }
 
 func (s status) next() status {
-	if s == done {
-		return todo
+	if s == col3 {
+		return col1
 	} else {
 		return s + 1
 	}
 }
 
 func (s status) prev() status {
-	if s == todo {
-		return done
+	if s == col1 {
+		return col3
 	} else {
 		return s - 1
 	}
@@ -82,8 +82,7 @@ func (m *Model) initLists() tea.Msg {
 
 	m.setDelegate()
 
-	titles := []string{
-		"TO DO", "IN PROGRESS", "DONE"}
+	titles := []string{m.Column1Name, m.Column2Name, m.Column3Name}
 
 	for i, title := range titles {
 		m.lists[i].Title = title
@@ -97,9 +96,9 @@ func (m *Model) initLists() tea.Msg {
 
 func (m *Model) setListTasks() tea.Msg {
 	items := map[status][]list.Item{
-		todo:  {},
-		doing: {},
-		done:  {},
+		col1: {},
+		col2: {},
+		col3: {},
 	}
 
 	for _, t := range m.tasks {

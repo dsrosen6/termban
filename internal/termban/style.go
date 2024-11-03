@@ -7,10 +7,6 @@ import (
 )
 
 var (
-	blue  = lipgloss.Color("039")
-	white = lipgloss.Color("#FFFFFF")
-	grey  = lipgloss.Color("243")
-
 	// used to get frame size
 	dummyBorder = lipgloss.NewStyle().Border(lipgloss.NormalBorder())
 )
@@ -90,7 +86,7 @@ func (m *Model) focusColumnView() lipgloss.Style {
 func (m *Model) inactiveFocusColumnView() lipgloss.Style {
 	return m.templateColumnView().
 		Border(m.border).
-		BorderForeground(grey).
+		BorderForeground(m.mainColor).
 		Faint(true)
 }
 
@@ -107,7 +103,6 @@ func (m *Model) getModeColor() lipgloss.Color {
 }
 
 func formTheme() *huh.Theme {
-	// TODO: customize this
 	t := huh.ThemeBase()
 	return t
 }
