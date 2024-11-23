@@ -1,4 +1,4 @@
-module github.com/dsrosen6/termban
+module github.com/dsrosen6/ttask
 
 go 1.23.1
 
