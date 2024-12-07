@@ -21,7 +21,7 @@ func main() {
 		fmt.Printf("Error creating main directory: %v", err)
 		os.Exit(1)
 	}
-	
+
 	lev := slog.LevelInfo
 	if len(os.Args) > 1 {
 		switch os.Args[1] {
@@ -42,7 +42,14 @@ func main() {
 		os.Exit(1)
 	}
 
-	p := tea.NewProgram(termban.NewModel(log, cfg), tea.WithAltScreen())
+	sq, err := termban.NewSQLiteHandler(log, cfg.DBLoc)
+	if err != nil {
+		log.Error("OpenDB", "error", err)
+		fmt.Println(err)
+		os.Exit(1)
+	}
+
+	p := tea.NewProgram(termban.NewModel(log, cfg, sq), tea.WithAltScreen())
 	if _, err := p.Run(); err != nil {
 		fmt.Printf("An error occured: %v", err)
 		os.Exit(1)

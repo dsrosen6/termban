@@ -1,15 +1,12 @@
 package termban
 
 import (
-	"fmt"
-	"log/slog"
-	"os"
-
 	"github.com/charmbracelet/bubbles/list"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/huh"
 	"github.com/charmbracelet/lipgloss"
 	_ "github.com/mattn/go-sqlite3"
+	"log/slog"
 )
 
 const (
@@ -24,7 +21,7 @@ type (
 
 type Model struct {
 	log       *slog.Logger
-	dbHandler dbHandler
+	dbHandler DBHandler
 	cmdActive bool
 	tasks     []task
 	lists     []list.Model
@@ -85,18 +82,12 @@ func newInputForm() *huh.Form {
 	).WithShowHelp(false).WithTheme(formTheme()).WithHeight(1)
 }
 
-func NewModel(log *slog.Logger, cfg *Config) *Model {
-	dbHandler, err := newDBHandler(log, cfg.DBLoc)
-	if err != nil {
-		log.Error("OpenDB", "error", err)
-		fmt.Println(err)
-		os.Exit(1)
-	}
+func NewModel(log *slog.Logger, cfg *Config, dbHandler DBHandler) *Model {
 
 	log.Debug("model created")
 	return &Model{
 		log:       log,
-		dbHandler: *dbHandler,
+		dbHandler: dbHandler,
 		mode:      listMode,
 		columnNames: columnNames{
 			Column1Name: cfg.Column1Name(),

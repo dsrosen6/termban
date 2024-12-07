@@ -3,26 +3,39 @@ package termban
 import (
 	"database/sql"
 	"fmt"
+	"go.mongodb.org/mongo-driver/v2/mongo"
 	"log/slog"
 
 	_ "github.com/mattn/go-sqlite3"
 )
 
-type dbHandler struct {
+type DBHandler interface {
+	insertTask(task task) error
+	getTasks() ([]task, error)
+	updateTask(task task) error
+	deleteTask(id int) error
+}
+
+type SQLiteHandler struct {
 	log *slog.Logger
 	*sql.DB
 }
 
-func newDBHandler(log *slog.Logger, dbPath string) (*dbHandler, error) {
-	db, err := openDB(dbPath)
+type mongoHandler struct {
+	log    *slog.Logger
+	client *mongo.Client
+}
+
+func NewSQLiteHandler(log *slog.Logger, dbPath string) (*SQLiteHandler, error) {
+	db, err := openSQLiteDB(dbPath)
 	if err != nil {
 		return nil, fmt.Errorf("OpenDB: %w", err)
 	}
 
-	return &dbHandler{log, db}, err
+	return &SQLiteHandler{log, db}, err
 }
 
-func openDB(dbPath string) (*sql.DB, error) {
+func openSQLiteDB(dbPath string) (*sql.DB, error) {
 	db, err := sql.Open("sqlite3", fmt.Sprintf("%s/tasks.db", dbPath))
 	if err != nil {
 		return nil, fmt.Errorf("error opening db: %w", err)
@@ -48,12 +61,12 @@ func openDB(dbPath string) (*sql.DB, error) {
 	return db, nil
 }
 
-func (db *dbHandler) insertTask(task task) error {
-	db.log.Debug("new task received",
+func (sq *SQLiteHandler) insertTask(task task) error {
+	sq.log.Debug("new task received",
 		"title", task.title,
 		"desc", task.desc,
 		"status", task.status)
-	stmt, err := db.Prepare("INSERT INTO tasks(title, description, status) VALUES(?, ?, ?)")
+	stmt, err := sq.Prepare("INSERT INTO tasks(title, description, status) VALUES(?, ?, ?)")
 	if err != nil {
 		return fmt.Errorf("could not prepare statement: %w", err)
 	}
@@ -63,7 +76,7 @@ func (db *dbHandler) insertTask(task task) error {
 		return fmt.Errorf("could not exec statement: %w", err)
 	}
 
-	db.log.Debug("task added to db",
+	sq.log.Debug("task added to db",
 		"title", task.title,
 		"desc", task.desc,
 		"status", task.status)
@@ -71,16 +84,16 @@ func (db *dbHandler) insertTask(task task) error {
 	return nil
 }
 
-func (db *dbHandler) getTasks() ([]task, error) {
-	db.log.Debug("getting tasks from db")
-	rows, err := db.Query("SELECT * FROM tasks")
+func (sq *SQLiteHandler) getTasks() ([]task, error) {
+	sq.log.Debug("getting tasks from db")
+	rows, err := sq.Query("SELECT * FROM tasks")
 	if err != nil {
 		return nil, fmt.Errorf("db.Query: %w", err)
 	}
 	defer func(rows *sql.Rows) {
 		err := rows.Close()
 		if err != nil {
-			db.log.Error("could not close rows", "error", err)
+			sq.log.Error("could not close rows", "error", err)
 		}
 	}(rows)
 
@@ -97,8 +110,8 @@ func (db *dbHandler) getTasks() ([]task, error) {
 	return tasks, nil
 }
 
-func (db *dbHandler) updateTask(task task) error {
-	stmt, err := db.Prepare("UPDATE tasks SET title=?, description=?, status=? WHERE id=?")
+func (sq *SQLiteHandler) updateTask(task task) error {
+	stmt, err := sq.Prepare("UPDATE tasks SET title=?, description=?, status=? WHERE id=?")
 	if err != nil {
 		return fmt.Errorf("could not prepare statement: %w", err)
 	}
@@ -111,8 +124,8 @@ func (db *dbHandler) updateTask(task task) error {
 	return nil
 }
 
-func (db *dbHandler) deleteTask(id int) error {
-	stmt, err := db.Prepare("DELETE FROM tasks WHERE id=?")
+func (sq *SQLiteHandler) deleteTask(id int) error {
+	stmt, err := sq.Prepare("DELETE FROM tasks WHERE id=?")
 	if err != nil {
 		return fmt.Errorf("could not prepare statement: %w", err)
 	}
