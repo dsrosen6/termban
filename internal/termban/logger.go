@@ -7,7 +7,7 @@ import (
 )
 
 func GetLogger(level slog.Level, filePath string) (*slog.Logger, error) {
-	logFile, err := os.OpenFile(filePath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
+	logFile, err := os.OpenFile(filePath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0600)
 	if err != nil {
 		return nil, fmt.Errorf("os.OpenFile: %w", err)
 	}
