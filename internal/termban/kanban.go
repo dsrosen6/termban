@@ -134,7 +134,7 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			case moveMode:
 				return m, m.setMode(listMode)
 			default:
-				panic("unhandled default case")
+				// do nothing (this comment is here to make GoLand happy)
 			}
 		}
 
