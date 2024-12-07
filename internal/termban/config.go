@@ -1,4 +1,4 @@
-package kanban
+package termban
 
 import (
 	"encoding/json"

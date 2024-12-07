@@ -1,4 +1,4 @@
-package kanban
+package termban
 
 import (
 	"fmt"
@@ -7,7 +7,7 @@ import (
 )
 
 const (
-	subDirPath = "/Library/ttask" // directory path, which will follow the user's home folder
+	subDirPath = "/Library/termban" // directory path, which will follow the user's home folder
 )
 
 type FilePaths struct {
@@ -18,16 +18,16 @@ type FilePaths struct {
 }
 
 func GetFilePaths() (*FilePaths, error) {
-	dirPath, err := getTTaskDir()
+	dirPath, err := getTermbanDir()
 	if err != nil {
-		return nil, fmt.Errorf("shared.GetTTaskDir: %w", err)
+		return nil, fmt.Errorf("shared.GetTermbanDir: %w", err)
 	}
 
 	return &FilePaths{
 		MainDir: dirPath,
 		CfgFile: fmt.Sprintf("%s/%s", dirPath, "config.json"),
 		DBFile:  dirPath,
-		LogFile: fmt.Sprintf("%s/%s", dirPath, "ttask.log"),
+		LogFile: fmt.Sprintf("%s/%s", dirPath, "termban.log"),
 	}, nil
 }
 
@@ -39,7 +39,7 @@ func FileExists(filePath string) bool {
 	return true
 }
 
-func getTTaskDir() (string, error) {
+func getTermbanDir() (string, error) {
 	u, err := user.Current()
 	if err != nil {
 		return "", fmt.Errorf("user.Current: %w", err)

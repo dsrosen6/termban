@@ -2,7 +2,8 @@ package main
 
 import (
 	"fmt"
-	"github.com/dsrosen6/ttask/internal/kanban"
+	"github.com/dsrosen6/termban/internal/termban"
+
 	"log/slog"
 	"os"
 
@@ -10,12 +11,17 @@ import (
 )
 
 func main() {
-	fp, err := kanban.GetFilePaths()
+	fp, err := termban.GetFilePaths()
 	if err != nil {
 		fmt.Printf("Error getting file paths: %v", err)
 		os.Exit(1)
 	}
 
+	if err := os.MkdirAll(fp.MainDir, 0755); err != nil {
+		fmt.Printf("Error creating main directory: %v", err)
+		os.Exit(1)
+	}
+	
 	lev := slog.LevelInfo
 	if len(os.Args) > 1 {
 		switch os.Args[1] {
@@ -24,19 +30,19 @@ func main() {
 		}
 	}
 
-	log, err := kanban.GetLogger(lev, fp.LogFile)
+	log, err := termban.GetLogger(lev, fp.LogFile)
 	if err != nil {
 		fmt.Printf("Error getting logger: %v", err)
 		os.Exit(1)
 	}
 
-	cfg, err := kanban.Load(fp, log)
+	cfg, err := termban.Load(fp, log)
 	if err != nil {
 		fmt.Printf("Error loading config: %v", err)
 		os.Exit(1)
 	}
 
-	p := tea.NewProgram(kanban.NewModel(log, cfg), tea.WithAltScreen())
+	p := tea.NewProgram(termban.NewModel(log, cfg), tea.WithAltScreen())
 	if _, err := p.Run(); err != nil {
 		fmt.Printf("An error occured: %v", err)
 		os.Exit(1)
